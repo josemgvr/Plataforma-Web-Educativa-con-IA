@@ -1,0 +1,584 @@
+/* ========================================================
+   ESTILOS GENERALES Y VARIABLES
+   ======================================================== */
+:root {
+  --color-primario: #1e3a8a;       /* Azul marino institucional */
+  --color-primario-hover: #1e40af;
+  --color-secundario: #0ea5e9;     /* Azul claro */
+  --color-fondo: #f8fafc;          /* Fondo suave */
+  --color-tarjeta: #ffffff;
+  --color-texto: #1e293b;          /* Gris oscuro legible */
+  --color-texto-suave: #64748b;
+  --color-borde: #e2e8f0;
+  --color-exito: #16a34a;
+  --color-alerta: #d97706;
+  --color-peligro: #dc2626;
+  --sombra-suave: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --sombra-fuerte: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --radio-borde: 10px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: var(--color-fondo);
+  color: var(--color-texto);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root, .app-contenedor {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-contenedor > main,
+.app-contenedor > .panel-privado {
+  flex: 1;
+}
+
+/* ========================================================
+   CABECERA
+   ======================================================== */
+.cabecera {
+  background: #ffffff;
+  border-bottom: 2px solid var(--color-borde);
+  padding: 1rem 2rem;
+  box-shadow: var(--sombra-suave);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.contenedor-cabecera {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.logo-colegio h1 {
+  font-size: 1.6rem;
+  color: var(--color-primario);
+  font-weight: 700;
+}
+
+.logo-colegio .subtitulo {
+  font-size: 0.9rem;
+  color: var(--color-texto-suave);
+}
+
+.area-usuario {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.usuario-conectado {
+  font-size: 0.95rem;
+  color: var(--color-texto);
+  background-color: #f1f5f9;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+}
+
+/* ========================================================
+   BOTONES
+   ======================================================== */
+button {
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.boton-primario {
+  background-color: var(--color-primario);
+  color: #ffffff;
+}
+
+.boton-primario:hover {
+  background-color: var(--color-primario-hover);
+}
+
+.boton-secundario {
+  background-color: #e2e8f0;
+  color: var(--color-texto);
+}
+
+.boton-secundario:hover {
+  background-color: #cbd5e1;
+}
+
+.boton-peligro {
+  background-color: #fee2e2;
+  color: var(--color-peligro);
+  border: 1px solid #fca5a5;
+}
+
+.boton-peligro:hover {
+  background-color: #fecaca;
+}
+
+/* ========================================================
+   CONTENEDOR PRINCIPAL Y VISTA PÚBLICA
+   ======================================================== */
+.contenedor-principal {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  flex: 1;
+  width: 100%;
+}
+
+.banner-imagen {
+  position: relative;
+  border-radius: var(--radio-borde);
+  overflow: hidden;
+  box-shadow: var(--sombra-suave);
+  margin-bottom: 2rem;
+}
+
+.banner-imagen img {
+  width: 100%;
+  height: 380px;
+  object-fit: cover;
+  display: block;
+}
+
+.pie-banner {
+  display: block;
+  text-align: center;
+  padding: 0.5rem;
+  background-color: #ffffff;
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--color-borde);
+}
+
+.seccion-bienvenida {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-suave);
+  margin-bottom: 2rem;
+  border-left: 5px solid var(--color-primario);
+}
+
+.seccion-bienvenida h2 {
+  color: var(--color-primario);
+  margin-bottom: 0.8rem;
+}
+
+.rejilla-tres-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.tarjeta-info {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-suave);
+  border-top: 4px solid var(--color-secundario);
+}
+
+.tarjeta-info h3 {
+  color: var(--color-primario);
+  margin-bottom: 1rem;
+}
+
+.tarjeta-info ul {
+  list-style: none;
+}
+
+.tarjeta-info li {
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+}
+
+/* ========================================================
+   MODAL DE LOGIN
+   ======================================================== */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 1rem;
+}
+
+.modal-contenido {
+  background: #ffffff;
+  border-radius: var(--radio-borde);
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  box-shadow: var(--sombra-fuerte);
+}
+
+.modal-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-cabecera h2 {
+  font-size: 1.3rem;
+  color: var(--color-primario);
+}
+
+.btn-cerrar {
+  background: transparent;
+  font-size: 1.8rem;
+  line-height: 1;
+  padding: 0 0.3rem;
+  color: var(--color-texto-suave);
+}
+
+.btn-cerrar:hover {
+  color: var(--color-texto);
+}
+
+.campo-formulario {
+  margin-bottom: 1.2rem;
+}
+
+.campo-formulario label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.campo-formulario input,
+.campo-formulario select {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.campo-formulario input:focus,
+.campo-formulario select:focus {
+  outline: 2px solid var(--color-primario);
+  border-color: transparent;
+}
+
+.acciones-formulario {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.alerta-error {
+  background-color: #fee2e2;
+  color: var(--color-peligro);
+  padding: 0.7rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #fecaca;
+}
+
+/* ========================================================
+   VISTA PRIVADA DEL ALUMNO
+   ======================================================== */
+.panel-privado {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+  width: 100%;
+}
+
+.barra-lateral {
+  width: 280px;
+  background: #ffffff;
+  border-radius: var(--radio-borde);
+  padding: 1.5rem;
+  box-shadow: var(--sombra-suave);
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+}
+
+.perfil-lateral {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-borde);
+  padding-bottom: 1rem;
+}
+
+.avatar-alumno {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 0.8rem;
+  border: 3px solid var(--color-secundario);
+}
+
+.perfil-lateral h3 {
+  font-size: 1.1rem;
+  color: var(--color-texto);
+}
+
+.etiqueta-rol {
+  display: inline-block;
+  background-color: #e0e7ff;
+  color: var(--color-primario);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+}
+
+.menu-navegacion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-nav {
+  text-align: left;
+  background: transparent;
+  color: var(--color-texto);
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.btn-nav:hover {
+  background-color: #f1f5f9;
+}
+
+.btn-nav.activo {
+  background-color: var(--color-primario);
+  color: #ffffff;
+}
+
+.lateral-inferior {
+  margin-top: 2rem;
+  border-top: 1px solid var(--color-borde);
+  padding-top: 1rem;
+}
+
+.lateral-inferior button {
+  width: 100%;
+}
+
+.contenido-alumno {
+  flex: 1;
+  min-width: 0;
+}
+
+.subseccion-alumno h2 {
+  color: var(--color-primario);
+  margin-bottom: 1.5rem;
+}
+
+.subseccion-alumno h3 {
+  color: var(--color-texto);
+  margin: 1.5rem 0 1rem 0;
+}
+
+/* Métricas */
+.metricas-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.tarjeta-metrica {
+  background: #ffffff;
+  padding: 1.2rem;
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-suave);
+  border-left: 4px solid var(--color-secundario);
+}
+
+.metrica-titulo {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  margin-bottom: 0.4rem;
+}
+
+.metrica-valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-primario);
+}
+
+.tarjeta-blanca {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-suave);
+  margin-bottom: 1.5rem;
+}
+
+/* Certificados */
+.lista-certificados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.item-certificado {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 1rem;
+  border-radius: 8px;
+  color: #166534;
+}
+
+/* Desglose de notas */
+.lista-notas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.item-nota {
+  background: #ffffff;
+  border: 1px solid var(--color-borde);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.nota-badge {
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Rejilla de Cursos */
+.rejilla-cursos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+}
+
+.tarjeta-curso {
+  background: #ffffff;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  padding: 1.2rem;
+  box-shadow: var(--sombra-suave);
+}
+
+.tarjeta-curso h4 {
+  color: var(--color-primario);
+  margin-bottom: 0.5rem;
+}
+
+.caja-aviso {
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-left: 4px solid var(--color-alerta);
+  padding: 1.5rem;
+  border-radius: var(--radio-borde);
+}
+
+.caja-aviso h4 {
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+
+.texto-secundario {
+  color: var(--color-texto-suave);
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Panel Profesor / Director */
+.panel-otro-rol {
+  text-align: center;
+  margin-top: 4rem;
+}
+
+.mensaje-destacado {
+  font-size: 1.2rem;
+  margin: 1rem 0;
+  color: var(--color-primario);
+}
+
+/* ========================================================
+   PIE DE PÁGINA
+   ======================================================== */
+.pie-pagina {
+  background: #ffffff;
+  border-top: 1px solid var(--color-borde);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  margin-top: auto;
+}
+
+/* Clases de utilidad */
+.oculto {
+  display: none !important;
+}
+
+/* ========================================================
+   RESPONSIVE DESIGN (MÓVILES Y TABLETS)
+   ======================================================== */
+@media (max-width: 768px) {
+  .panel-privado {
+    flex-direction: column;
+  }
+
+  .barra-lateral {
+    width: 100%;
+  }
+
+  .banner-imagen img {
+    height: 220px;
+  }
+
+  .contenedor-cabecera {
+    flex-direction: column;
+    text-align: center;
+  }
+}
