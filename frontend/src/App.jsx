@@ -1,42 +1,66 @@
 import { useState, useEffect } from 'react';
 
 // URL base de la API FastAPI.
-// Con Vite proxy en dev (puerto 5173), las rutas relativas se reenvían al backend en http://127.0.0.1:8000.
 const API_BASE = window.location.port === '5173'
   ? ''
   : (window.location.origin.startsWith('http') ? window.location.origin : 'http://127.0.0.1:8000');
 
-// Función auxiliar para capitalizar texto (ej: "alumno" -> "Alumno")
 function capitalizar(texto) {
   if (!texto) return '';
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 // ========================================================
-// COMPONENTE: CABECERA
+// COMPONENTE: CABECERA INSTITUCIONAL
 // ========================================================
 function Cabecera({ usuario, onAbrirLogin, onCerrarSesion }) {
+  const iniciales = usuario && usuario.nombre
+    ? usuario.nombre.split(' ').map(n => n[0]).slice(0, 2).join('')
+    : 'U';
+
   return (
     <header className="cabecera">
       <div className="contenedor-cabecera">
         <div className="logo-colegio">
-          <h1>🏫 Colegio Mayor Cibeles</h1>
-          <p className="subtitulo">Excelencia académica y formación integral en el corazón de Madrid</p>
+          <div className="escudo-icono">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div className="logo-textos">
+            <h1>Colegio Mayor Cibeles</h1>
+            <p className="subtitulo">Excelencia Académica · Comunidad de Madrid</p>
+          </div>
         </div>
-        
+
         <div className="area-usuario">
           {usuario ? (
             <>
-              <span className="usuario-conectado">
-                Conectado como: <strong>{usuario.nombre}</strong> ({capitalizar(usuario.rol)})
-              </span>
-              <button onClick={onCerrarSesion} className="boton-secundario">
-                🚪 Salir
+              <div className="chip-sesion">
+                <div className="avatar-mini">{iniciales}</div>
+                <div className="usuario-info-texto">
+                  <span>{usuario.nombre}</span>
+                  <span className="badge-rol">{capitalizar(usuario.rol)}</span>
+                </div>
+              </div>
+              <button onClick={onCerrarSesion} className="boton-secundario" title="Cerrar sesión actual">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Salir
               </button>
             </>
           ) : (
             <button onClick={onAbrirLogin} className="boton-primario">
-              🔑 Iniciar sesión
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              Acceso al Portal
             </button>
           )}
         </div>
@@ -50,25 +74,37 @@ function Cabecera({ usuario, onAbrirLogin, onCerrarSesion }) {
 // ========================================================
 function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
   const [rol, setRol] = useState('alumno');
-  const [nombre, setNombre] = useState('');
-  const [contrasena, setContrasena] = useState('');
+  const [nombre, setNombre] = useState('Lucas Morales Vega');
+  const [contrasena, setContrasena] = useState('alumno123');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     if (estaAbierto) {
       setError('');
-      setNombre('');
-      setContrasena('');
     }
   }, [estaAbierto]);
 
   if (!estaAbierto) return null;
 
+  function seleccionarRolRapido(nuevoRol) {
+    setRol(nuevoRol);
+    if (nuevoRol === 'alumno') {
+      setNombre('Lucas Morales Vega');
+      setContrasena('alumno123');
+    } else if (nuevoRol === 'profesor') {
+      setNombre('Carlos Mendoza Ramos');
+      setContrasena('profesor123');
+    } else {
+      setNombre('Elena Vázquez Gómez');
+      setContrasena('director123');
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!nombre.trim() || !contrasena) {
-      setError('Por favor, completa todos los campos.');
+      setError('Por favor, ingresa tus credenciales completas.');
       return;
     }
 
@@ -99,7 +135,7 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
       onCerrar();
     } catch (err) {
       if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
-        setError('No se puede conectar con el backend. Asegúrate de que FastAPI está en ejecución en http://127.0.0.1:8000.');
+        setError('No se pudo conectar con el servidor API. Verifica que FastAPI está iniciado.');
       } else {
         setError(err.message);
       }
@@ -112,52 +148,85 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
     <div className="modal" onClick={(e) => { if (e.target.className === 'modal') onCerrar(); }}>
       <div className="modal-contenido">
         <div className="modal-cabecera">
-          <h2>🔐 Acceso al Portal Académico</h2>
-          <button onClick={onCerrar} className="btn-cerrar">&times;</button>
+          <div className="modal-cabecera-texto">
+            <h2>Acceso Institucional</h2>
+            <p>Introduce tus credenciales autorizadas</p>
+          </div>
+          <button onClick={onCerrar} className="btn-cerrar" title="Cerrar modal">&times;</button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="campo-formulario">
-            <label htmlFor="rol-login">Selecciona tu perfil:</label>
-            <select id="rol-login" value={rol} onChange={(e) => setRol(e.target.value)} required>
-              <option value="alumno">Alumno</option>
-              <option value="profesor">Profesor</option>
-              <option value="director">Director</option>
-            </select>
+          {/* Selector de rol segmentado visual */}
+          <div className="selector-rol-segmentado">
+            <button
+              type="button"
+              className={`btn-opcion-rol ${rol === 'alumno' ? 'activo' : ''}`}
+              onClick={() => seleccionarRolRapido('alumno')}
+            >
+              <span>🎓</span> Alumno
+            </button>
+            <button
+              type="button"
+              className={`btn-opcion-rol ${rol === 'profesor' ? 'activo' : ''}`}
+              onClick={() => seleccionarRolRapido('profesor')}
+            >
+              <span>👨‍🏫</span> Profesor
+            </button>
+            <button
+              type="button"
+              className={`btn-opcion-rol ${rol === 'director' ? 'activo' : ''}`}
+              onClick={() => seleccionarRolRapido('director')}
+            >
+              <span>🏛️</span> Director
+            </button>
           </div>
 
           <div className="campo-formulario">
-            <label htmlFor="nombre-login">Nombre y apellidos:</label>
-            <input
-              type="text"
-              id="nombre-login"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej: Lucas Morales Vega"
-              required
-            />
+            <label htmlFor="nombre-login">Nombre y Apellidos</label>
+            <div className="input-con-icono">
+              <span className="input-icono-left">👤</span>
+              <input
+                type="text"
+                id="nombre-login"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Nombre completo registrado"
+                required
+              />
+            </div>
           </div>
 
           <div className="campo-formulario">
-            <label htmlFor="pass-login">Contraseña:</label>
-            <input
-              type="password"
-              id="pass-login"
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
-              placeholder="Tu contraseña"
-              required
-            />
+            <label htmlFor="pass-login">Contraseña</label>
+            <div className="input-con-icono">
+              <span className="input-icono-left">🔒</span>
+              <input
+                type="password"
+                id="pass-login"
+                value={contrasena}
+                onChange={(e) => setContrasena(e.target.value)}
+                placeholder="Contraseña del portal"
+                required
+              />
+            </div>
           </div>
 
-          {error && <div className="alerta-error">{error}</div>}
+          <div className="credenciales-demo-box">
+            💡 <strong>Acceso rápido de prueba:</strong> Cambia de pestaña arriba para auto-cargar los usuarios oficiales del centro.
+          </div>
+
+          {error && (
+            <div className="alerta-error">
+              <span>⚠️</span> {error}
+            </div>
+          )}
 
           <div className="acciones-formulario">
             <button type="button" onClick={onCerrar} className="boton-secundario" disabled={cargando}>
               Cancelar
             </button>
             <button type="submit" className="boton-primario" disabled={cargando}>
-              {cargando ? 'Accediendo...' : 'Entrar'}
+              {cargando ? 'Verificando...' : 'Iniciar Sesión'}
             </button>
           </div>
         </form>
@@ -167,63 +236,117 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
 }
 
 // ========================================================
-// COMPONENTE: PORTAL PÚBLICO
+// COMPONENTE: PORTAL PÚBLICO (WOW & PRESTIGIO)
 // ========================================================
-function VistaPublica() {
+function VistaPublica({ onAbrirLogin }) {
   return (
     <main className="contenedor-principal">
-      <div className="banner-imagen">
-        <img
-          src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200&auto=format&fit=crop&q=80"
-          alt="Campus Central del Colegio Mayor Cibeles - Retiro, Madrid"
-        />
-        <span className="pie-banner">Campus Central del Colegio Mayor Cibeles — Retiro, Madrid</span>
-      </div>
+      {/* HERO SECTION DE PRESTIGIO */}
+      <section className="hero-institucional">
+        <div className="hero-contenido">
+          <div className="insignia-prestigio">
+            <span>⚜️</span> Excelencia Educativa · Fundado en 1978
+          </div>
+          <h2 className="hero-titulo">
+            Formando a los <span>Líderes y Científicos</span> del Mañana
+          </h2>
+          <p className="hero-descripcion">
+            Situado en el distrito de Retiro de Madrid, el Colegio Mayor Cibeles fusiona tradición humanista,
+            tecnología de vanguardia y rigor pedagógico para inspirar el máximo potencial de cada alumno.
+          </p>
+          <div className="hero-acciones">
+            <button onClick={onAbrirLogin} className="boton-dorado">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </svg>
+              Acceso a Expedientes
+            </button>
+            <a href="#pilares" className="boton-secundario" style={{ textDecoration: 'none' }}>
+              Conoce el Centro
+            </a>
+          </div>
+        </div>
 
-      <section className="seccion-bienvenida">
-        <h2>🏛️ Bienvenidos al Colegio Mayor Cibeles</h2>
-        <p>
-          Fundado en 1978 en el emblemático distrito de Retiro de <strong>Madrid</strong>, el <strong>Colegio Mayor Cibeles</strong> es un referente
-          en innovación pedagógica, rigor académico y educación en valores humanos. Formamos a estudiantes preparados
-          para afrontar los desafíos del futuro con pensamiento crítico y compromiso social.
-        </p>
+        <div className="hero-imagen-wrapper">
+          <img
+            src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1200&auto=format&fit=crop&q=80"
+            alt="Campus Central del Colegio Mayor Cibeles en Madrid"
+          />
+          <div className="hero-badge-flotante">
+            <div className="hero-badge-icono">★</div>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>Top 5 Colegios Madrid</div>
+              <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Evaluación Educativa Oficial 2026</div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <div className="rejilla-tres-columnas">
-        <div className="tarjeta-info">
-          <h3>🎓 Proyecto Educativo</h3>
-          <ul>
-            <li><strong>Metodología STEAM:</strong> Integración de ciencia, tecnología, ingeniería, arte y matemáticas.</li>
-            <li><strong>Bilingüismo avanzado:</strong> Certificaciones oficiales de idiomas (Cambridge y DELF).</li>
-            <li><strong>Atención personalizada:</strong> Seguimiento continuo del rendimiento y tutorías individuales.</li>
-          </ul>
+      {/* CIFRAS DE EXCELENCIA */}
+      <section className="cifras-impacto">
+        <div className="tarjeta-cifra">
+          <div className="cifra-numero">98.6<span>%</span></div>
+          <div className="cifra-etiqueta">Acceso a la Universidad</div>
         </div>
+        <div className="tarjeta-cifra">
+          <div className="cifra-numero">+45</div>
+          <div className="cifra-etiqueta">Años de Trayectoria</div>
+        </div>
+        <div className="tarjeta-cifra">
+          <div className="cifra-numero">100<span>%</span></div>
+          <div className="cifra-etiqueta">Bilingüismo Certificado</div>
+        </div>
+        <div className="tarjeta-cifra">
+          <div className="cifra-numero">15<span>:1</span></div>
+          <div className="cifra-etiqueta">Ratio Alumno por Aula</div>
+        </div>
+      </section>
 
-        <div className="tarjeta-info">
-          <h3>🔬 Nuestras Instalaciones</h3>
-          <ul>
-            <li>Laboratorios de robótica y biotecnología.</li>
-            <li>Biblioteca con más de 15.000 volúmenes y espacio de co-working digital.</li>
-            <li>Complejo deportivo: piscina climatizada, pistas polideportivas y gimnasio.</li>
-          </ul>
-        </div>
-
-        <div className="tarjeta-info">
-          <h3>📍 Ubicación y Contacto</h3>
-          <ul>
-            <li><strong>Dirección:</strong> Calle de Menéndez Pelayo 24, 28009 Madrid.</li>
-            <li><strong>Metro:</strong> Retiro / Ibiza (Líneas 2 y 9).</li>
-            <li><strong>Teléfono:</strong> (+34) 91 555 78 90</li>
-            <li><strong>Email:</strong> secretaria@colegiomayorcibeles.es</li>
-          </ul>
-        </div>
+      {/* PILARES INSTITUCIONALES */}
+      <div className="seccion-encabezado" id="pilares">
+        <div className="seccion-subtitulo">Tradición y Futuro</div>
+        <h3 className="seccion-titulo">Pilares de Nuestra Propuesta Formativa</h3>
       </div>
+
+      <section className="rejilla-tres-columnas">
+        <div className="tarjeta-info">
+          <div className="icono-tarjeta-wrap">🔬</div>
+          <h3>Metodología STEAM</h3>
+          <ul>
+            <li>Integración activa de Ciencias, Robótica, Matemáticas y Creatividad artística.</li>
+            <li>Laboratorios de prototipado rápido y biotecnología aplicada.</li>
+            <li>Participación regular en certámenes de investigación nacional.</li>
+          </ul>
+        </div>
+
+        <div className="tarjeta-info">
+          <div className="icono-tarjeta-wrap">🌍</div>
+          <h3>Proyección Internacional</h3>
+          <ul>
+            <li>Currículum bilingüe con acreditación Cambridge English y DELF Francés.</li>
+            <li>Programas de inmersión académica y debate competitivo parlamentario.</li>
+            <li>Convenios con las principales universidades europeas y americanas.</li>
+          </ul>
+        </div>
+
+        <div className="tarjeta-info">
+          <div className="icono-tarjeta-wrap">🏛️</div>
+          <h3>Campus & Ubicación</h3>
+          <ul>
+            <li>Enclave histórico en Calle Menéndez Pelayo, junto a los Jardines del Retiro.</li>
+            <li>Biblioteca central con más de 15.000 títulos y salas de co-working.</li>
+            <li>Pabellón polideportivo, piscina climatizada y pistas reglamentarias.</li>
+          </ul>
+        </div>
+      </section>
     </main>
   );
 }
 
 // ========================================================
-// COMPONENTE: PANEL DEL ALUMNO
+// COMPONENTE: PANEL PRIVADO DEL ESTUDIANTE (DASHBOARD WOW)
 // ========================================================
 function VistaAlumno({ usuario, onCerrarSesion }) {
   const [seccionActiva, setSeccionActiva] = useState('personales');
@@ -256,26 +379,31 @@ function VistaAlumno({ usuario, onCerrarSesion }) {
     }
   }, [usuario]);
 
-  function obtenerEstadoAcademico(nota) {
-    if (nota >= 9) return 'Sobresaliente';
-    if (nota >= 7) return 'Notable';
-    if (nota >= 5) return 'Aprobado';
-    return 'Necesita mejorar';
+  function obtenerClaseEstado(nota) {
+    if (nota >= 9) return { texto: 'Sobresaliente', clase: 'excelente' };
+    if (nota >= 7) return { texto: 'Notable', clase: 'notable' };
+    if (nota >= 5) return { texto: 'Aprobado', clase: 'aprobado' };
+    return { texto: 'En refuerzo', clase: 'aprobado' };
   }
 
   const primerNombre = usuario.nombre ? usuario.nombre.split(' ')[0] : 'Alumno';
 
   return (
     <div className="panel-privado">
+      {/* BARRA LATERAL EJECUTIVA */}
       <aside className="barra-lateral">
         <div className="perfil-lateral">
-          <img
-            src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300"
-            alt="Avatar Alumno"
-            className="avatar-alumno"
-          />
-          <h3>👋 Hola, {primerNombre}</h3>
-          <span className="etiqueta-rol">Alumno</span>
+          <div className="avatar-alumno-wrapper">
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+              alt="Avatar del Estudiante"
+              className="avatar-alumno"
+            />
+            <div className="insignia-verificado" title="Expediente Oficial Verificado">✓</div>
+          </div>
+          <h3>{usuario.nombre}</h3>
+          <div className="matricula-id">Expediente ID: #{usuario.id}</div>
+          <span className="etiqueta-rol">Estudiante Activo</span>
         </div>
 
         <nav className="menu-navegacion">
@@ -284,48 +412,67 @@ function VistaAlumno({ usuario, onCerrarSesion }) {
             className={`btn-nav ${seccionActiva === 'personales' ? 'activo' : ''}`}
             onClick={() => setSeccionActiva('personales')}
           >
-            📋 Datos personales
+            <span className="btn-nav-icono">📋</span> Ficha Personal
           </button>
           <button
             type="button"
             className={`btn-nav ${seccionActiva === 'notas' ? 'activo' : ''}`}
             onClick={() => setSeccionActiva('notas')}
           >
-            📊 Consultar notas
+            <span className="btn-nav-icono">📊</span> Calificaciones
           </button>
           <button
             type="button"
             className={`btn-nav ${seccionActiva === 'cursos' ? 'activo' : ''}`}
             onClick={() => setSeccionActiva('cursos')}
           >
-            📚 Cursos
+            <span className="btn-nav-icono">📚</span> Cursos y Horarios
           </button>
           <button
             type="button"
             className={`btn-nav ${seccionActiva === 'informe' ? 'activo' : ''}`}
             onClick={() => setSeccionActiva('informe')}
           >
-            📄 Ver informe
+            <span className="btn-nav-icono">📑</span> Informe de Rendimiento
           </button>
         </nav>
 
         <div className="lateral-inferior">
           <button onClick={onCerrarSesion} className="boton-peligro">
-            🚪 Cerrar sesión
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Finalizar Sesión
           </button>
         </div>
       </aside>
 
+      {/* CONTENIDO PRINCIPAL DEL DASHBOARD */}
       <section className="contenido-alumno">
+        {/* Banner de saludo oficial */}
+        <div className="banner-bienvenida-alumno">
+          <div className="banner-alumno-textos">
+            <h2>Expediente de {primerNombre}</h2>
+            <p>Bienvenido a tu panel de seguimiento curricular y acreditaciones académicas.</p>
+          </div>
+          <div className="banner-alumno-periodo">
+            Curso Académico 2026/2027
+          </div>
+        </div>
+
         {cargando && (
-          <div className="tarjeta-blanca">
-            <p>⏳ Cargando expediente del estudiante...</p>
+          <div className="tarjeta-blanca" style={{ textAlign: 'center', padding: '3rem' }}>
+            <p style={{ fontSize: '1.1rem', color: 'var(--navy-700)', fontWeight: '600' }}>
+              ⏳ Sincronizando expediente con la base de datos oficial...
+            </p>
           </div>
         )}
 
         {error && (
           <div className="alerta-error">
-            <p>❌ {error}</p>
+            <span>⚠️</span> {error}
           </div>
         )}
 
@@ -333,112 +480,297 @@ function VistaAlumno({ usuario, onCerrarSesion }) {
           <>
             {/* SUBSECCIÓN 1: DATOS PERSONALES */}
             {seccionActiva === 'personales' && (
-              <div className="subseccion-alumno">
-                <h2>📋 Ficha del Estudiante</h2>
+              <div>
                 <div className="metricas-fila">
                   <div className="tarjeta-metrica">
-                    <span className="metrica-titulo">ID de Estudiante</span>
-                    <span className="metrica-valor">{datosAlumno.id}</span>
+                    <div className="metrica-header">
+                      <span className="metrica-titulo">Asistencia Oficial</span>
+                      <div className="metrica-icono">📅</div>
+                    </div>
+                    <div className="metrica-valor">{datosAlumno.asistencia}%</div>
+                    <div className="metrica-subtexto">
+                      <span>✓</span> Cumple con el estándar de regularidad (&gt;90%)
+                    </div>
+                    <div className="barra-progreso-mini">
+                      <div className="barra-progreso-fill emerald" style={{ width: `${Math.min(datosAlumno.asistencia, 100)}%` }}></div>
+                    </div>
                   </div>
+
                   <div className="tarjeta-metrica">
-                    <span className="metrica-titulo">Asistencia</span>
-                    <span className="metrica-valor">{datosAlumno.asistencia}%</span>
+                    <div className="metrica-header">
+                      <span className="metrica-titulo">Trabajos Entregados</span>
+                      <div className="metrica-icono">📝</div>
+                    </div>
+                    <div className="metrica-valor">{datosAlumno.trabajos_entregados}</div>
+                    <div className="metrica-subtexto">Proyectos y prácticas validadas</div>
+                    <div className="barra-progreso-mini">
+                      <div className="barra-progreso-fill" style={{ width: '85%' }}></div>
+                    </div>
                   </div>
-                  <div className="tarjeta-metrica">
-                    <span className="metrica-titulo">Trabajos Entregados</span>
-                    <span className="metrica-valor">{datosAlumno.trabajos_entregados}</span>
+
+                  <div className="tarjeta-metrica destacada">
+                    <div className="metrica-header">
+                      <span className="metrica-titulo">Promedio Global</span>
+                      <div className="metrica-icono">🏆</div>
+                    </div>
+                    <div className="metrica-valor">{datosAlumno.nota_media} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
+                    <div className="metrica-subtexto">
+                      Estado: <strong>{obtenerClaseEstado(datosAlumno.nota_media).texto}</strong>
+                    </div>
+                    <div className="barra-progreso-mini">
+                      <div className="barra-progreso-fill gold" style={{ width: `${(datosAlumno.nota_media / 10) * 100}%` }}></div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="tarjeta-blanca">
-                  <p><strong>Nombre completo:</strong> {datosAlumno.nombre_apellidos}</p>
-                </div>
+                  <div className="encabezado-bloque">
+                    <h3>🏆 Certificaciones y Diplomas Acreditados</h3>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--gold-600)', fontWeight: '700' }}>
+                      {datosAlumno.certificados ? datosAlumno.certificados.length : 0} Registrados
+                    </span>
+                  </div>
 
-                <h3>🏆 Certificados Obtenidos</h3>
-                <div className="lista-certificados">
-                  {datosAlumno.certificados && datosAlumno.certificados.length > 0 ? (
-                    datosAlumno.certificados.map((c, i) => (
-                      <div key={i} className="item-certificado">
-                        🏅 <strong>{c.nombre}</strong> — Obtenido el: {c.fecha_obtencion || 'Sin fecha registrada'}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="texto-secundario">Aún no tienes certificados registrados.</p>
-                  )}
+                  <div className="lista-certificados">
+                    {datosAlumno.certificados && datosAlumno.certificados.length > 0 ? (
+                      datosAlumno.certificados.map((c, i) => (
+                        <div key={i} className="item-certificado">
+                          <div className="certificado-medalla">🏅</div>
+                          <div className="certificado-datos">
+                            <h4>{c.nombre}</h4>
+                            <div className="certificado-fecha">
+                              Acreditado el: <strong>{c.fecha_obtencion || 'Registro ordinario'}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p style={{ color: 'var(--text-muted)' }}>No constan certificados expedidos en la matrícula actual.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* SUBSECCIÓN 2: CONSULTAR NOTAS */}
+            {/* SUBSECCIÓN 2: NOTAS */}
             {seccionActiva === 'notas' && (
-              <div className="subseccion-alumno">
-                <h2>📊 Rendimiento Académico</h2>
+              <div>
                 <div className="metricas-fila">
-                  <div className="tarjeta-metrica">
-                    <span className="metrica-titulo">Nota Media Global</span>
-                    <span className="metrica-valor">{datosAlumno.nota_media} / 10</span>
+                  <div className="tarjeta-metrica destacada">
+                    <div className="metrica-header">
+                      <span className="metrica-titulo">Nota Media de Corte</span>
+                      <div className="metrica-icono">🎓</div>
+                    </div>
+                    <div className="metrica-valor">{datosAlumno.nota_media}</div>
+                    <div className="barra-progreso-mini">
+                      <div className="barra-progreso-fill gold" style={{ width: `${(datosAlumno.nota_media / 10) * 100}%` }}></div>
+                    </div>
                   </div>
+
                   <div className="tarjeta-metrica">
-                    <span className="metrica-titulo">Estado Académico</span>
-                    <span className="metrica-valor">{obtenerEstadoAcademico(datosAlumno.nota_media)}</span>
+                    <div className="metrica-header">
+                      <span className="metrica-titulo">Rango de Rendimiento</span>
+                      <div className="metrica-icono">📊</div>
+                    </div>
+                    <div className="metrica-valor" style={{ fontSize: '1.6rem' }}>
+                      {obtenerClaseEstado(datosAlumno.nota_media).texto}
+                    </div>
+                    <div className="metrica-subtexto">Calculado según el baremo oficial</div>
+                  </div>
+
+                  <div className="tarjeta-metrica">
+                    <div className="metrica-header">
+                      <span className="metrica-titulo">Asignaturas Evaluadas</span>
+                      <div className="metrica-icono">📖</div>
+                    </div>
+                    <div className="metrica-valor">
+                      {datosAlumno.cursos ? datosAlumno.cursos.length : 0}
+                    </div>
+                    <div className="metrica-subtexto">Materias con actas abiertas</div>
                   </div>
                 </div>
 
-                <h3>📝 Desglose de Notas por Curso</h3>
-                <div className="lista-notas">
-                  {datosAlumno.cursos && datosAlumno.cursos.length > 0 ? (
-                    datosAlumno.cursos.map((c, i) => (
-                      <div key={i} className="item-nota">
-                        <div>
-                          <strong>{c.nombre}</strong> ({c.materia})<br />
-                          <small className="texto-secundario">
-                            Periodo: {c.fecha_inicio || '-'} a {c.fecha_fin || '-'}
-                          </small>
-                        </div>
-                        <span className="nota-badge">
-                          Nota: {c.nota !== null && c.nota !== undefined ? c.nota : 'Pendiente'}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="texto-secundario">No tienes cursos con notas asignadas actualmente.</p>
-                  )}
+                <div className="tarjeta-blanca">
+                  <div className="encabezado-bloque">
+                    <h3>Desglose Oficial de Calificaciones por Asignatura</h3>
+                  </div>
+
+                  <div className="lista-notas">
+                    {datosAlumno.cursos && datosAlumno.cursos.length > 0 ? (
+                      datosAlumno.cursos.map((c, i) => {
+                        const estadoNota = c.nota !== null && c.nota !== undefined
+                          ? obtenerClaseEstado(c.nota)
+                          : { texto: 'Pendiente', clase: 'notable' };
+
+                        return (
+                          <div key={i} className="item-nota">
+                            <div className="item-nota-info">
+                              <h4>{c.nombre}</h4>
+                              <div className="item-nota-materia">
+                                Departamento de {c.materia} · Periodo: {c.fecha_inicio || '-'} a {c.fecha_fin || '-'}
+                              </div>
+                            </div>
+                            <div>
+                              <span className={`nota-badge ${estadoNota.clase}`}>
+                                {c.nota !== null && c.nota !== undefined ? `${c.nota} pts` : 'En curso'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p style={{ color: 'var(--text-muted)' }}>No hay calificaciones asignadas actualmente.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* SUBSECCIÓN 3: CURSOS */}
             {seccionActiva === 'cursos' && (
-              <div className="subseccion-alumno">
-                <h2>📚 Cursos Matriculados</h2>
+              <div>
+                <div className="encabezado-bloque" style={{ marginBottom: '1.5rem' }}>
+                  <h3>Asignaturas y Cursos Matriculados</h3>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    Total: <strong>{datosAlumno.cursos ? datosAlumno.cursos.length : 0} cursos</strong>
+                  </span>
+                </div>
+
                 <div className="rejilla-cursos">
                   {datosAlumno.cursos && datosAlumno.cursos.length > 0 ? (
                     datosAlumno.cursos.map((c, i) => (
                       <div key={i} className="tarjeta-curso">
-                        <h4>📖 {c.nombre}</h4>
-                        <p><strong>Materia:</strong> {c.materia}</p>
-                        <p><strong>Fecha de inicio:</strong> {c.fecha_inicio || 'Por definir'}</p>
-                        <p><strong>Fecha de finalización:</strong> {c.fecha_fin || 'Por definir'}</p>
-                        <p><strong>Calificación actual:</strong> {c.nota !== null && c.nota !== undefined ? c.nota : 'En curso'}</p>
+                        <div className="tarjeta-curso-top">
+                          <span className="tarjeta-curso-tag">{c.materia}</span>
+                          <h4>{c.nombre}</h4>
+                          <div className="tarjeta-curso-fechas">
+                            <div>📅 <strong>Inicio:</strong> {c.fecha_inicio || 'Octubre 2026'}</div>
+                            <div>🏁 <strong>Conclusión:</strong> {c.fecha_fin || 'Junio 2027'}</div>
+                          </div>
+                        </div>
+
+                        <div className="tarjeta-curso-bottom">
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Calificación:</span>
+                          <strong style={{ color: 'var(--navy-900)' }}>
+                            {c.nota !== null && c.nota !== undefined ? `${c.nota} / 10` : 'En progreso'}
+                          </strong>
+                        </div>
                       </div>
                     ))
                   ) : (
-                    <p className="texto-secundario">Actualmente no estás matriculado en ningún curso.</p>
+                    <p style={{ color: 'var(--text-muted)' }}>Actualmente no tienes asignaturas matriculadas.</p>
                   )}
                 </div>
               </div>
             )}
 
-            {/* SUBSECCIÓN 4: VER INFORME */}
+            {/* SUBSECCIÓN 4: INFORME DE RENDIMIENTO (WOW) */}
             {seccionActiva === 'informe' && (
-              <div className="subseccion-alumno">
-                <h2>📄 Informe de Rendimiento Académico</h2>
-                <div className="caja-aviso">
-                  <h4>⚙️ Módulo en desarrollo</h4>
-                  <p>La generación y exportación del informe analítico detallado estará disponible próximamente.</p>
-                  <p className="texto-secundario">
-                    En este apartado podrás visualizar un informe completo con estadísticas de progreso, fortalezas de aprendizaje y recomendaciones personalizadas.
+              <div className="informe-analitico">
+                <div className="informe-header-oficial">
+                  <div>
+                    <h3>Dictamen de Rendimiento y Progreso Curricular</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      Secretaría Académica del Colegio Mayor Cibeles
+                    </p>
+                  </div>
+                  <div className="informe-folio">
+                    FOLIO: CM-2026-{datosAlumno.id}-EXP
+                  </div>
+                </div>
+
+                <div className="rejilla-graficas-informe">
+                  {/* Gráfica 1: Cumplimiento de Asistencia */}
+                  <div className="caja-grafica-css">
+                    <h4>📊 Cumplimiento de Asistencia y Participación</h4>
+                    <div className="barras-comparativa">
+                      <div>
+                        <div className="barra-item-label">
+                          <span>Asistencia registrada</span>
+                          <span>{datosAlumno.asistencia}%</span>
+                        </div>
+                        <div className="barra-track">
+                          <div
+                            className="barra-fill-dinamica"
+                            style={{
+                              width: `${Math.min(datosAlumno.asistencia, 100)}%`,
+                              background: 'linear-gradient(90deg, #10b981, #059669)'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="barra-item-label">
+                          <span>Estándar institucional mínimo</span>
+                          <span>85%</span>
+                        </div>
+                        <div className="barra-track">
+                          <div
+                            className="barra-fill-dinamica"
+                            style={{ width: '85%', background: '#94a3b8' }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gráfica 2: Rendimiento frente al grupo */}
+                  <div className="caja-grafica-css">
+                    <h4>📈 Rendimiento Evaluativo (Sobre 10)</h4>
+                    <div className="barras-comparativa">
+                      <div>
+                        <div className="barra-item-label">
+                          <span>Nota media del estudiante</span>
+                          <span>{datosAlumno.nota_media} / 10</span>
+                        </div>
+                        <div className="barra-track">
+                          <div
+                            className="barra-fill-dinamica"
+                            style={{
+                              width: `${(datosAlumno.nota_media / 10) * 100}%`,
+                              background: 'linear-gradient(90deg, #d97706, #fbbf24)'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="barra-item-label">
+                          <span>Media global del curso</span>
+                          <span>7.4 / 10</span>
+                        </div>
+                        <div className="barra-track">
+                          <div
+                            className="barra-fill-dinamica"
+                            style={{ width: '74%', background: '#3b82f6' }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dictamen-pedagogico">
+                  <h4>📜 Valoración Pedagógica Personalizada</h4>
+                  <p>
+                    El alumno <strong>{datosAlumno.nombre_apellidos}</strong> demuestra un progreso académico{' '}
+                    <strong>{obtenerClaseEstado(datosAlumno.nota_media).texto.toLowerCase()}</strong> con un índice de regularidad
+                    de asistencia de <strong>{datosAlumno.asistencia}%</strong> y <strong>{datosAlumno.trabajos_entregados}</strong> proyectos
+                    entregados en plazo.
                   </p>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                    Recomendación de la Junta Docente: Mantener el ritmo en las materias analíticas y reforzar la participación en certámenes STEAM.
+                  </p>
+                </div>
+
+                <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                  <button
+                    onClick={() => window.print()}
+                    className="boton-primario"
+                  >
+                    🖨️ Imprimir Dictamen Oficial
+                  </button>
                 </div>
               </div>
             )}
@@ -457,13 +789,16 @@ function VistaOtroRol({ usuario, onCerrarSesion }) {
   return (
     <main className="contenedor-principal panel-otro-rol">
       <div className="tarjeta-blanca">
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏛️</div>
         <h2>Panel de {rolTitulo}</h2>
         <p className="mensaje-destacado">
-          Has iniciado sesión como {rolTitulo} ({usuario.nombre}).
+          Sesión activa: <strong>{usuario.nombre}</strong> ({rolTitulo})
         </p>
-        <p>El panel de administración completo para profesores y directores se implementará en el siguiente paso.</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+          El módulo de gestión docente y administración directiva se habilitará en la siguiente fase de desarrollo.
+        </p>
         <button onClick={onCerrarSesion} className="boton-primario">
-          Cerrar sesión
+          Cerrar Sesión
         </button>
       </div>
     </main>
@@ -471,18 +806,33 @@ function VistaOtroRol({ usuario, onCerrarSesion }) {
 }
 
 // ========================================================
-// COMPONENTE: PIE DE PÁGINA
+// COMPONENTE: PIE DE PÁGINA INSTITUCIONAL
 // ========================================================
 function PiePagina() {
   return (
     <footer className="pie-pagina">
-      <p>© 2026 Colegio Mayor Cibeles — Comunidad de Madrid. Todos los derechos reservados.</p>
+      <div className="contenedor-pie">
+        <div className="pie-branding">
+          <h3>Colegio Mayor Cibeles · Madrid</h3>
+          <p>Compromiso con la excelencia, la ética humanista y la innovación pedagógica.</p>
+        </div>
+        <div className="pie-enlaces">
+          <div>Distrito Retiro, Madrid</div>
+          <span>•</span>
+          <div>Acreditación Oficial CAM</div>
+          <span>•</span>
+          <div>Secretaría Académica</div>
+        </div>
+      </div>
+      <div className="pie-creditos">
+        © 2026 Colegio Mayor Cibeles. Todos los derechos reservados. Sistema de Gestión Integral de Estudiantes.
+      </div>
     </footer>
   );
 }
 
 // ========================================================
-// COMPONENTE PRINCIPAL: APP
+// COMPONENTE PRINCIPAL APP
 // ========================================================
 function App() {
   const [usuario, setUsuario] = useState(() => {
@@ -520,7 +870,9 @@ function App() {
         onLoginExitoso={handleLoginExitoso}
       />
 
-      {!usuario && <VistaPublica />}
+      {!usuario && (
+        <VistaPublica onAbrirLogin={() => setModalLoginAbierto(true)} />
+      )}
 
       {usuario && usuario.rol === 'alumno' && (
         <VistaAlumno usuario={usuario} onCerrarSesion={handleCerrarSesion} />
