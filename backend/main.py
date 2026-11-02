@@ -510,12 +510,9 @@ FRONTEND_DIR = os.path.join(BASE_PROYECTO, "frontend")
 DIST_DIR = os.path.join(FRONTEND_DIR, "dist")
 
 if os.path.exists(DIST_DIR):
-    assets_dir = os.path.join(DIST_DIR, "assets")
-    if os.path.exists(assets_dir):
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
-    app.mount("/frontend", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
 elif os.path.exists(FRONTEND_DIR):
-    app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 @app.get("/", summary="Servir página principal del frontend")
 def pagina_principal():
@@ -526,4 +523,3 @@ def pagina_principal():
     if os.path.exists(index_frontend):
         return FileResponse(index_frontend)
     return {"mensaje": "Portal de Estudiantes API funcionando."}
-
