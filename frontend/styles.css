@@ -655,6 +655,7 @@ button {
   margin-bottom: 1.8rem;
   border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 1.2rem;
+  gap: 1rem;
 }
 
 .modal-cabecera-texto h2 {
@@ -668,6 +669,56 @@ button {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin-top: 0.2rem;
+}
+
+.modal-cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.btn-toggle-demo {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-toggle-demo:hover {
+  background: var(--navy-50);
+  border-color: var(--navy-100);
+  color: var(--navy-900);
+}
+
+.btn-toggle-demo.activo {
+  background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-400) 100%);
+  color: var(--navy-950);
+  border-color: var(--gold-400);
+  box-shadow: 0 2px 10px rgba(217, 119, 6, 0.28);
+}
+
+.indicador-switch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+  transition: background 0.2s ease;
+}
+
+.btn-toggle-demo.activo .indicador-switch {
+  background: #166534;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
 .btn-cerrar {

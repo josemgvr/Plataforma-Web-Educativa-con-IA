@@ -69,35 +69,76 @@ function Cabecera({ usuario, onAbrirLogin, onCerrarSesion }) {
   );
 }
 
+// Credenciales oficiales de prueba sincronizadas con CREDENCIALES_PRUEBA.md y SQLite
+const CREDENCIALES_DEMO = {
+  alumno: {
+    nombre: 'Lucas Morales Vega',
+    contrasena: 'alumno123'
+  },
+  profesor: {
+    nombre: 'Carlos Martínez Ruiz',
+    contrasena: 'profe123'
+  },
+  director: {
+    nombre: 'Elena Navarro Gómez',
+    contrasena: 'admin123'
+  }
+};
+
 // ========================================================
 // COMPONENTE: MODAL DE INICIO DE SESIÓN
 // ========================================================
 function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
   const [rol, setRol] = useState('alumno');
-  const [nombre, setNombre] = useState('Lucas Morales Vega');
-  const [contrasena, setContrasena] = useState('alumno123');
+  const [nombre, setNombre] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [autocompletarTest, setAutocompletarTest] = useState(false);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     if (estaAbierto) {
       setError('');
+      if (autocompletarTest) {
+        const cred = CREDENCIALES_DEMO[rol];
+        if (cred) {
+          setNombre(cred.nombre);
+          setContrasena(cred.contrasena);
+        }
+      } else {
+        setNombre('');
+        setContrasena('');
+      }
     }
   }, [estaAbierto]);
 
   if (!estaAbierto) return null;
 
-  function seleccionarRolRapido(nuevoRol) {
-    setRol(nuevoRol);
-    if (nuevoRol === 'alumno') {
-      setNombre('Lucas Morales Vega');
-      setContrasena('alumno123');
-    } else if (nuevoRol === 'profesor') {
-      setNombre('Carlos Mendoza Ramos');
-      setContrasena('profesor123');
+  function toggleAutocompletado() {
+    const nuevoEstado = !autocompletarTest;
+    setAutocompletarTest(nuevoEstado);
+    setError('');
+    if (nuevoEstado) {
+      const cred = CREDENCIALES_DEMO[rol];
+      if (cred) {
+        setNombre(cred.nombre);
+        setContrasena(cred.contrasena);
+      }
     } else {
-      setNombre('Elena Vázquez Gómez');
-      setContrasena('director123');
+      setNombre('');
+      setContrasena('');
+    }
+  }
+
+  function cambiarRol(nuevoRol) {
+    setRol(nuevoRol);
+    setError('');
+    if (autocompletarTest) {
+      const cred = CREDENCIALES_DEMO[nuevoRol];
+      if (cred) {
+        setNombre(cred.nombre);
+        setContrasena(cred.contrasena);
+      }
     }
   }
 
@@ -152,7 +193,18 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
             <h2>Acceso Institucional</h2>
             <p>Introduce tus credenciales autorizadas</p>
           </div>
-          <button onClick={onCerrar} className="btn-cerrar" title="Cerrar modal">&times;</button>
+          <div className="modal-cabecera-acciones">
+            <button
+              type="button"
+              onClick={toggleAutocompletado}
+              className={`btn-toggle-demo ${autocompletarTest ? 'activo' : ''}`}
+              title={autocompletarTest ? 'Desactivar autocompletado de prueba' : 'Activar autocompletado con credenciales de prueba'}
+            >
+              <span className="indicador-switch"></span>
+              <span>{autocompletarTest ? 'Pruebas: ON' : 'Pruebas: OFF'}</span>
+            </button>
+            <button onClick={onCerrar} className="btn-cerrar" title="Cerrar modal">&times;</button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -161,21 +213,21 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
             <button
               type="button"
               className={`btn-opcion-rol ${rol === 'alumno' ? 'activo' : ''}`}
-              onClick={() => seleccionarRolRapido('alumno')}
+              onClick={() => cambiarRol('alumno')}
             >
               <span>🎓</span> Alumno
             </button>
             <button
               type="button"
               className={`btn-opcion-rol ${rol === 'profesor' ? 'activo' : ''}`}
-              onClick={() => seleccionarRolRapido('profesor')}
+              onClick={() => cambiarRol('profesor')}
             >
               <span>👨‍🏫</span> Profesor
             </button>
             <button
               type="button"
               className={`btn-opcion-rol ${rol === 'director' ? 'activo' : ''}`}
-              onClick={() => seleccionarRolRapido('director')}
+              onClick={() => cambiarRol('director')}
             >
               <span>🏛️</span> Director
             </button>
@@ -211,9 +263,11 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
             </div>
           </div>
 
-          <div className="credenciales-demo-box">
-            💡 <strong>Acceso rápido de prueba:</strong> Cambia de pestaña arriba para auto-cargar los usuarios oficiales del centro.
-          </div>
+          {autocompletarTest && (
+            <div className="credenciales-demo-box">
+              ⚡ <strong>Autocompletado de prueba activo:</strong> Credenciales oficiales cargadas para <strong>{capitalizar(rol)}</strong> ({rol === 'alumno' ? 'Lucas Morales Vega' : rol === 'profesor' ? 'Carlos Martínez Ruiz' : 'Elena Navarro Gómez'}).
+            </div>
+          )}
 
           {error && (
             <div className="alerta-error">
