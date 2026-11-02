@@ -1,0 +1,24 @@
+{
+  "name": "Colegio Mayor Cibeles - Portal Académico",
+  "short_name": "Cibeles",
+  "description": "Portal académico y sistema de gestión de estudiantes del Colegio Mayor Cibeles.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070d1e",
+  "theme_color": "#0c1630",
+  "orientation": "portrait-primary",
+  "lang": "es-ES",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "productivity"
+  ]
+}
