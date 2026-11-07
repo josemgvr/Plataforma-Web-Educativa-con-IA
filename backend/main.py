@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-import sqlite3
+import psycopg
 import os
 try:
     from backend.database import get_connection, init_db
@@ -79,7 +79,7 @@ def verificar_director(nombre: str, contrasena: str):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT id FROM directores WHERE nombre_apellidos = ? AND contrasena = ?", (nombre, contrasena))
+        cursor.execute("SELECT id FROM directores WHERE nombre_apellidos = %s AND contrasena = %s", (nombre, contrasena))
         director = cursor.fetchone()
         if not director:
             raise HTTPException(status_code=401, detail="Credenciales incorrectas: solo un director/admin puede realizar esta acción.")
@@ -100,14 +100,14 @@ def verificar_permiso_consulta(nombre: str, contrasena: str, rol: str, alumno_id
 
     try:
         if rol == "director":
-            cursor.execute("SELECT id FROM directores WHERE nombre_apellidos = ? AND contrasena = ?", (nombre, contrasena))
+            cursor.execute("SELECT id FROM directores WHERE nombre_apellidos = %s AND contrasena = %s", (nombre, contrasena))
             director = cursor.fetchone()
             if not director:
                 raise HTTPException(status_code=401, detail="Credenciales incorrectas para el rol director.")
             return True
 
         elif rol == "alumno":
-            cursor.execute("SELECT id FROM alumnos WHERE nombre_apellidos = ? AND contrasena = ?", (nombre, contrasena))
+            cursor.execute("SELECT id FROM alumnos WHERE nombre_apellidos = %s AND contrasena = %s", (nombre, contrasena))
             alumno = cursor.fetchone()
             if not alumno:
                 raise HTTPException(status_code=401, detail="Credenciales incorrectas para el rol alumno.")
@@ -116,7 +116,7 @@ def verificar_permiso_consulta(nombre: str, contrasena: str, rol: str, alumno_id
             return True
 
         elif rol == "profesor":
-            cursor.execute("SELECT id FROM profesores WHERE nombre_apellidos = ? AND contrasena = ?", (nombre, contrasena))
+            cursor.execute("SELECT id FROM profesores WHERE nombre_apellidos = %s AND contrasena = %s", (nombre, contrasena))
             profesor = cursor.fetchone()
             if not profesor:
                 raise HTTPException(status_code=401, detail="Credenciales incorrectas para el rol profesor.")
@@ -126,7 +126,7 @@ def verificar_permiso_consulta(nombre: str, contrasena: str, rol: str, alumno_id
                 SELECT 1
                 FROM profesores_cursos pc
                 JOIN alumnos_cursos ac ON pc.curso_id = ac.curso_id
-                WHERE pc.profesor_id = ? AND ac.alumno_id = ?
+                WHERE pc.profesor_id = %s AND ac.alumno_id = %s
             """, (profesor["id"], alumno_id_objetivo))
             
             coincidencia = cursor.fetchone()
@@ -149,12 +149,13 @@ def registrar_alumno(datos: RegistroAlumno):
     try:
         cursor.execute("""
             INSERT INTO alumnos (nombre_apellidos, contrasena, nota_media, trabajos_entregados, asistencia)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
         """, (datos.nombre_apellidos, datos.contrasena, datos.nota_media, datos.trabajos_entregados, datos.asistencia))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        nuevo_id = cursor.lastrowid
         return {"mensaje": "Alumno registrado con éxito", "id": nuevo_id, "nombre": datos.nombre_apellidos}
-    except sqlite3.IntegrityError:
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El nombre ya está registrado o los datos no cumplen las restricciones.")
     finally:
         conn.close()
@@ -166,12 +167,13 @@ def registrar_profesor(datos: RegistroProfesor):
     try:
         cursor.execute("""
             INSERT INTO profesores (nombre_apellidos, telefono, contrasena)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
+            RETURNING id
         """, (datos.nombre_apellidos, datos.telefono, datos.contrasena))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        nuevo_id = cursor.lastrowid
         return {"mensaje": "Profesor registrado con éxito", "id": nuevo_id, "nombre": datos.nombre_apellidos}
-    except sqlite3.IntegrityError:
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El nombre ya está registrado.")
     finally:
         conn.close()
@@ -183,12 +185,13 @@ def registrar_director(datos: RegistroDirector):
     try:
         cursor.execute("""
             INSERT INTO directores (nombre_apellidos, contrasena)
-            VALUES (?, ?)
+            VALUES (%s, %s)
+            RETURNING id
         """, (datos.nombre_apellidos, datos.contrasena))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        nuevo_id = cursor.lastrowid
         return {"mensaje": "Director registrado con éxito", "id": nuevo_id, "nombre": datos.nombre_apellidos}
-    except sqlite3.IntegrityError:
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El nombre ya está registrado.")
     finally:
         conn.close()
@@ -206,9 +209,10 @@ def crear_curso(
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO cursos (nombre, materia) VALUES (?, ?)", (datos.nombre, datos.materia))
+        cursor.execute("INSERT INTO cursos (nombre, materia) VALUES (%s, %s) RETURNING id", (datos.nombre, datos.materia))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        return {"mensaje": "Curso creado con éxito", "id": cursor.lastrowid, "nombre": datos.nombre}
+        return {"mensaje": "Curso creado con éxito", "id": nuevo_id, "nombre": datos.nombre}
     finally:
         conn.close()
 
@@ -232,9 +236,10 @@ def crear_certificado(
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO certificados (nombre) VALUES (?)", (datos.nombre,))
+        cursor.execute("INSERT INTO certificados (nombre) VALUES (%s) RETURNING id", (datos.nombre,))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        return {"mensaje": "Certificado creado con éxito", "id": cursor.lastrowid, "nombre": datos.nombre}
+        return {"mensaje": "Certificado creado con éxito", "id": nuevo_id, "nombre": datos.nombre}
     finally:
         conn.close()
 
@@ -263,11 +268,13 @@ def asignar_alumno_curso(
     try:
         cursor.execute("""
             INSERT INTO alumnos_cursos (alumno_id, curso_id, fecha_inicio, fecha_fin, nota)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
         """, (datos.alumno_id, datos.curso_id, datos.fecha_inicio, datos.fecha_fin, datos.nota))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        return {"mensaje": "Alumno asignado al curso correctamente", "id": cursor.lastrowid}
-    except sqlite3.IntegrityError:
+        return {"mensaje": "Alumno asignado al curso correctamente", "id": nuevo_id}
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El alumno o el curso no existen.")
     finally:
         conn.close()
@@ -284,11 +291,13 @@ def asignar_profesor_curso(
     try:
         cursor.execute("""
             INSERT INTO profesores_cursos (profesor_id, curso_id)
-            VALUES (?, ?)
+            VALUES (%s, %s)
+            RETURNING id
         """, (datos.profesor_id, datos.curso_id))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        return {"mensaje": "Profesor asignado al curso correctamente", "id": cursor.lastrowid}
-    except sqlite3.IntegrityError:
+        return {"mensaje": "Profesor asignado al curso correctamente", "id": nuevo_id}
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El profesor o el curso no existen.")
     finally:
         conn.close()
@@ -305,11 +314,13 @@ def asignar_alumno_certificado(
     try:
         cursor.execute("""
             INSERT INTO alumnos_certificados (alumno_id, certificado_id, fecha_obtencion)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
+            RETURNING id
         """, (datos.alumno_id, datos.certificado_id, datos.fecha_obtencion))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        return {"mensaje": "Certificado asignado al alumno correctamente", "id": cursor.lastrowid}
-    except sqlite3.IntegrityError:
+        return {"mensaje": "Certificado asignado al alumno correctamente", "id": nuevo_id}
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El alumno o el certificado no existen.")
     finally:
         conn.close()
@@ -329,12 +340,13 @@ def agregar_alumno_director(
     try:
         cursor.execute("""
             INSERT INTO alumnos (nombre_apellidos, contrasena, nota_media, trabajos_entregados, asistencia)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
         """, (datos.nombre_apellidos, datos.contrasena, datos.nota_media, datos.trabajos_entregados, datos.asistencia))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        nuevo_id = cursor.lastrowid
         return {"mensaje": "Alumno añadido correctamente por el director", "id": nuevo_id, "nombre": datos.nombre_apellidos}
-    except sqlite3.IntegrityError:
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El nombre ya está registrado o los datos no cumplen las restricciones.")
     finally:
         conn.close()
@@ -351,12 +363,13 @@ def agregar_profesor_director(
     try:
         cursor.execute("""
             INSERT INTO profesores (nombre_apellidos, telefono, contrasena)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
+            RETURNING id
         """, (datos.nombre_apellidos, datos.telefono, datos.contrasena))
+        nuevo_id = cursor.fetchone()["id"]
         conn.commit()
-        nuevo_id = cursor.lastrowid
         return {"mensaje": "Profesor añadido correctamente por el director", "id": nuevo_id, "nombre": datos.nombre_apellidos}
-    except sqlite3.IntegrityError:
+    except psycopg.IntegrityError:
         raise HTTPException(status_code=400, detail="El nombre ya está registrado.")
     finally:
         conn.close()
@@ -371,7 +384,7 @@ def eliminar_alumno(
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("DELETE FROM alumnos WHERE id = ?", (alumno_id,))
+        cursor.execute("DELETE FROM alumnos WHERE id = %s", (alumno_id,))
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Alumno no encontrado.")
         conn.commit()
@@ -389,7 +402,7 @@ def eliminar_profesor(
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("DELETE FROM profesores WHERE id = ?", (profesor_id,))
+        cursor.execute("DELETE FROM profesores WHERE id = %s", (profesor_id,))
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Profesor no encontrado.")
         conn.commit()
@@ -445,7 +458,7 @@ def obtener_alumno(
         cursor.execute("""
             SELECT id, nombre_apellidos, nota_media, trabajos_entregados, asistencia
             FROM alumnos
-            WHERE id = ?
+            WHERE id = %s
         """, (alumno_id,))
         alumno = cursor.fetchone()
         if not alumno:
@@ -456,7 +469,7 @@ def obtener_alumno(
             SELECT c.id, c.nombre, c.materia, ac.fecha_inicio, ac.fecha_fin, ac.nota
             FROM alumnos_cursos ac
             JOIN cursos c ON ac.curso_id = c.id
-            WHERE ac.alumno_id = ?
+            WHERE ac.alumno_id = %s
         """, (alumno_id,))
         cursos = [dict(c) for c in cursor.fetchall()]
 
@@ -465,7 +478,7 @@ def obtener_alumno(
             SELECT cert.id, cert.nombre, ac.fecha_obtencion
             FROM alumnos_certificados ac
             JOIN certificados cert ON ac.certificado_id = cert.id
-            WHERE ac.alumno_id = ?
+            WHERE ac.alumno_id = %s
         """, (alumno_id,))
         certificados = [dict(cert) for cert in cursor.fetchall()]
 
@@ -490,7 +503,7 @@ def login(datos: LoginRequest):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute(f"SELECT * FROM {tabla} WHERE nombre_apellidos = ? AND contrasena = ?", (datos.nombre, datos.contrasena))
+        cursor.execute(f"SELECT * FROM {tabla} WHERE nombre_apellidos = %s AND contrasena = %s", (datos.nombre, datos.contrasena))
         usuario = cursor.fetchone()
         if not usuario:
             raise HTTPException(status_code=401, detail="Credenciales incorrectas o usuario no encontrado.")
