@@ -72,12 +72,12 @@ function Cabecera({ usuario, onAbrirLogin, onCerrarSesion }) {
 // Credenciales oficiales de prueba sincronizadas con CREDENCIALES_PRUEBA.md y SQLite
 const CREDENCIALES_DEMO = {
   alumno: {
-    nombre: 'Lucas Morales Vega',
+    nombre: 'Javier Martin Ramos',
     contrasena: 'alumno123'
   },
   profesor: {
-    nombre: 'Carlos Martínez Ruiz',
-    contrasena: 'profe123'
+    nombre: 'Ivan Martinez Gomez',
+    contrasena: 'profesor123'
   },
   director: {
     nombre: 'Elena Navarro Gómez',
@@ -265,7 +265,7 @@ function ModalLogin({ estaAbierto, onCerrar, onLoginExitoso }) {
 
           {autocompletarTest && (
             <div className="credenciales-demo-box">
-              ⚡ <strong>Autocompletado de prueba activo:</strong> Credenciales oficiales cargadas para <strong>{capitalizar(rol)}</strong> ({rol === 'alumno' ? 'Lucas Morales Vega' : rol === 'profesor' ? 'Carlos Martínez Ruiz' : 'Elena Navarro Gómez'}).
+              ⚡ <strong>Autocompletado de prueba activo:</strong> Credenciales oficiales cargadas para <strong>{capitalizar(rol)}</strong> ({rol === 'alumno' ? 'Javier Martin Ramos' : rol === 'profesor' ? 'Ivan Martinez Gomez' : 'Elena Navarro Gómez'}).
             </div>
           )}
 
