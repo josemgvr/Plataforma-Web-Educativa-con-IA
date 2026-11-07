@@ -1,3 +1,4 @@
+AVISO: Todos los nombre utilizados son inventados.
 # 🏫 Registro de Estudiantes — Colegio Mayor Cibeles
 
 Aplicación web fullstack diseñada para registrar, consultar y analizar la información académica de estudiantes (notas, cursos matriculados, asistencia y certificados) con control de acceso por roles (alumnos, profesores y directores).
@@ -20,9 +21,11 @@ El proyecto está organizado en una arquitectura desacoplada de tres capas:
   - Endpoints REST para autenticación (`/login`), gestión de alumnos, profesores, cursos y certificados.
   - Validación de esquemas con Pydantic y servicio de archivos estáticos del frontend.
 
-- **Base de datos (`SQLite`)**:
-  - Base de datos relacional local en `backend/estudiantes.db` gestionada mediante `sqlite3`.
-  - Tablas para alumnos, profesores, directores, cursos, certificados y tablas intermedias de asignación de notas y matrículas.
+- **Base de datos (`PostgreSQL`)**:
+  - Base de datos relacional alojada en **Supabase** y gestionada mediante **PostgreSQL**.
+  - Integración del backend con PostgreSQL utilizando **psycopg**.
+  - Tablas para alumnos, profesores, directores, cursos, certificados y tablas intermedias para la gestión de matrículas, asignaciones y calificaciones.
+  - Migración completa de los datos desde `SQLite` a `PostgreSQL` para mejorar la escalabilidad, concurrencia y preparación para despliegue en producción.
 
 ---
 
@@ -31,9 +34,10 @@ El proyecto está organizado en una arquitectura desacoplada de tres capas:
 ```text
 Proyecto/
 ├── backend/
-│   ├── database.py         # Conexión SQLite y creación de tablas iniciales
-│   ├── estudiantes.db      # Base de datos SQLite local
-│   └── main.py             # API FastAPI y servicio del frontend
+│   ├──	old-dataBase/	    # Antigua implementacion en SQlite local
+│   ├── database.py         # Conexión PostgreSQL (Supabase)
+│   ├── main.py             # API FastAPI y servicio del frontend
+│   └── requirements.text   # Requisitos de Phyton
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx         # Componentes React y lógica de interfaz
