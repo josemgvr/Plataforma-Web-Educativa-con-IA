@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // URL base de la API FastAPI.
-const API_BASE = window.location.port === '5173'
-  ? ''
-  : (window.location.origin.startsWith('http') ? window.location.origin : 'http://127.0.0.1:8000');
+const API_BASE = 'http://127.0.0.1:8000';
 
 function capitalizar(texto) {
   if (!texto) return '';
@@ -405,6 +403,268 @@ function VistaPublica({ onAbrirLogin }) {
         </div>
       </section>
     </main>
+  );
+}
+
+// ========================================================
+// COMPONENTE: CHATBOT ASISTENTE IA (GOOGLE GEMINI)
+// ========================================================
+function ChatbotDrawer({ abierto, onCerrar, usuario, tituloPersonalizado }) {
+  const [mensajes, setMensajes] = useState([]);
+  const [texto, setTexto] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const finMensajesRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const rol = usuario?.rol || (usuario?.matricula_id ? 'alumno' : 'usuario');
+  const primerNombre = usuario?.nombre ? usuario.nombre.split(' ')[0] : 'Usuario';
+
+  // Mensaje de bienvenida inicial según el rol del usuario
+  useEffect(() => {
+    let saludo = `👋 ¡Hola, ${primerNombre}! Soy tu asistente educativo con Inteligencia Artificial. ¿En qué puedo ayudarte hoy?`;
+    if (rol === 'profesor') {
+      saludo = `👋 ¡Hola, profesor/a ${primerNombre}! 📚 Soy tu copiloto pedagógico con Inteligencia Artificial.\n\nPuedo ayudarte a diseñar dinámicas de clase, elaborar rúbricas de evaluación, proponer ejercicios o redactar sugerencias didácticas.`;
+    } else if (rol === 'director') {
+      saludo = `👋 Saludos, ${primerNombre}. 🏛️ Soy tu asistente directivo e institucional con Inteligencia Artificial.\n\nPuedo asistirte en la redacción de circulares, planificación estratégica o dudas de gestión educativa.`;
+    }
+
+    setMensajes([
+      {
+        id: 'bienvenida',
+        emisor: 'ia',
+        texto: saludo,
+        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  }, [usuario, rol, primerNombre]);
+
+  // Auto-scroll al final al recibir o enviar un mensaje
+  useEffect(() => {
+    if (abierto) {
+      finMensajesRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  }, [mensajes, abierto, cargando]);
+
+  // Preguntas sugeridas contextuales según el rol
+  const sugerencias = rol === 'alumno'
+    ? [
+        '💡 Consejos para organizar mi tiempo de estudio',
+        '📝 ¿Cómo preparar un examen eficazmente?',
+        '📖 Explícame un concepto de matemáticas de forma sencilla'
+      ]
+    : rol === 'profesor'
+    ? [
+        '🎯 Ideas para motivar la participación en el aula',
+        '📋 Estructura recomendada para una rúbrica de evaluación',
+        '💡 Estrategias didácticas para alumnos en refuerzo'
+      ]
+    : [
+        '📢 Redactar una circular informativa para el centro',
+        '📊 Ideas para optimizar la coordinación docente',
+        '🏛️ Plan de bienvenida y convivencia escolar'
+      ];
+
+  async function enviarPregunta(textoEnviar) {
+    const consulta = (textoEnviar || texto).trim();
+    if (!consulta || cargando) return;
+
+    const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Añadir mensaje del usuario
+    const nuevoMensajeUsuario = {
+      id: Date.now(),
+      emisor: 'usuario',
+      texto: consulta,
+      hora: horaActual
+    };
+
+    setMensajes(prev => [...prev, nuevoMensajeUsuario]);
+    setTexto('');
+    setCargando(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ mensaje: consulta })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error del servidor (${res.status})`);
+      }
+
+      const data = await res.json();
+      const horaRespuesta = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      setMensajes(prev => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          emisor: 'ia',
+          texto: data.respuesta || 'Sin respuesta del modelo.',
+          hora: horaRespuesta
+        }
+      ]);
+    } catch (err) {
+      console.error('Error al comunicarse con el chatbot:', err);
+      const horaError = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setMensajes(prev => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          emisor: 'ia',
+          esError: true,
+          texto: `⚠️ No se pudo obtener respuesta: ${err.message}. Comprueba que el backend tenga configurada la clave GEMINI_API_KEY en backend/.env.`,
+          hora: horaError
+        }
+      ]);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    enviarPregunta();
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      enviarPregunta();
+    }
+  }
+
+  function limpiarHistorial() {
+    setMensajes([
+      {
+        id: Date.now(),
+        emisor: 'ia',
+        texto: '✨ Conversación reiniciada. ¿Qué otra duda o tema te gustaría consultar?',
+        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  }
+
+  const tituloCabecera = tituloPersonalizado || (
+    rol === 'director' ? '🏛️ Copiloto IA Dirección' :
+    rol === 'profesor' ? '✨ Copiloto IA Docente' :
+    '🎓 Asistente IA Estudiantil'
+  );
+
+  return (
+    <>
+      <div
+        className={`drawer-chat-overlay ${abierto ? 'abierto' : ''}`}
+        onClick={onCerrar}
+      />
+      <aside className={`drawer-chat-ia ${abierto ? 'abierto' : ''}`}>
+        <div className="drawer-chat-cabecera">
+          <div className="drawer-chat-titulo">
+            <h3>{tituloCabecera}</h3>
+            <span className="badge-ia-activa">Google Gemini</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              onClick={limpiarHistorial}
+              className="btn-cerrar"
+              title="Reiniciar conversación"
+              style={{ color: '#ffffff', opacity: 0.85, fontSize: '1rem', cursor: 'pointer' }}
+            >
+              🔄
+            </button>
+            <button onClick={onCerrar} className="btn-cerrar" style={{ color: '#ffffff' }} title="Cerrar chat">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <div className="drawer-chat-cuerpo">
+          {mensajes.map((msg) => (
+            <div
+              key={msg.id}
+              className={`chat-burbuja ${msg.emisor === 'usuario' ? 'usuario' : 'ia'} ${msg.esError ? 'chat-error' : ''}`}
+            >
+              <div className="chat-burbuja-contenido">
+                {msg.texto.split('\n').map((linea, idx) => (
+                  <p key={idx} style={{ margin: idx === 0 ? 0 : '0.4rem 0 0 0' }}>
+                    {linea}
+                  </p>
+                ))}
+              </div>
+              {msg.hora && (
+                <span className="chat-burbuja-hora">
+                  {msg.hora}
+                </span>
+              )}
+            </div>
+          ))}
+
+          {cargando && (
+            <div className="chat-burbuja ia chat-pensando">
+              <span className="spinner-ia"></span>
+              <span>Consultando a Gemini...</span>
+            </div>
+          )}
+
+          <div ref={finMensajesRef} />
+        </div>
+
+        {/* Sugerencias rápidas cuando el chat apenas inicia */}
+        {mensajes.length <= 2 && !cargando && (
+          <div className="chat-sugerencias-contenedor">
+            <span className="chat-sugerencias-titulo">💡 Sugerencias rápidas:</span>
+            <div className="chat-chips-lista">
+              {sugerencias.map((sug, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="chat-chip"
+                  onClick={() => enviarPregunta(sug)}
+                >
+                  {sug}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="drawer-chat-pie">
+          <form onSubmit={handleSubmit} className="chat-input-formulario">
+            <input
+              ref={inputRef}
+              type="text"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={cargando}
+              placeholder="Escribe tu mensaje para Gemini..."
+              maxLength={4000}
+            />
+            <button
+              type="submit"
+              className="boton-primario"
+              disabled={cargando || !texto.trim()}
+              title="Enviar consulta"
+              style={{ padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <span>Enviar</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
+          <div className="chat-pie-aviso">
+            <span>⚡ Google Gemini API · Asistencia académica en tiempo real</span>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -1161,62 +1421,13 @@ function VistaProfesor({ usuario, onCerrarSesion }) {
 
   return (
     <div className="panel-privado">
-      {/* DESPLEGABLE IZQUIERDO: CHAT CON IA (FUTURA IMPLEMENTACION) */}
-      <div
-        className={`drawer-chat-overlay ${chatIaAbierto ? 'abierto' : ''}`}
-        onClick={() => setChatIaAbierto(false)}
-      ></div>
-
-      <aside className={`drawer-chat-ia ${chatIaAbierto ? 'abierto' : ''}`}>
-        <div className="drawer-chat-cabecera">
-          <div className="drawer-chat-titulo">
-            <h3>✨ Copiloto IA Docente</h3>
-            <span className="badge-ia-futura">FUTURA IMPLEMENTACIÓN</span>
-          </div>
-          <button onClick={() => setChatIaAbierto(false)} className="btn-cerrar" style={{ color: '#ffffff' }}>
-            &times;
-          </button>
-        </div>
-
-        <div className="drawer-chat-cuerpo">
-          <div className="chat-burbuja ia">
-            👋 ¡Hola, <strong>{primerNombre}</strong>! Soy tu asistente pedagógico con Inteligencia Artificial.
-            En próximas versiones podré:
-            <ul style={{ margin: '0.5rem 0 0 1.2rem', padding: 0 }}>
-              <li>Analizar las calificaciones de tus cursos en tiempo real.</li>
-              <li>Detectar alumnos que necesitan refuerzo antes del examen.</li>
-              <li>Redactar propuestas de comentarios para actas oficiales.</li>
-              <li>Sugerir ejercicios didácticos adaptados por nivel.</li>
-            </ul>
-          </div>
-
-          <div className="chat-burbuja docente">
-            ¿Cuáles son los alumnos con notas por debajo de 5 en mis asignaturas?
-          </div>
-
-          <div className="chat-burbuja ia">
-            🤖 Cuando este módulo esté activo, te desglosaré automáticamente los alumnos en seguimiento prioritario
-            y te prepararé planes de refuerzo personalizados en un solo clic. 🚀
-          </div>
-
-          <div className="chat-ia-aviso">
-            <strong>ℹ️ Estado: Módulo en fase de diseño.</strong> Podrás interactuar de forma conversacional con tu base de datos académica en la siguiente fase de desarrollo.
-          </div>
-        </div>
-
-        <div className="drawer-chat-pie">
-          <div className="chat-input-simulado">
-            <input
-              type="text"
-              disabled
-              placeholder="Consulta a la IA sobre tus alumnos... (Próximamente)"
-            />
-            <button className="boton-primario" disabled style={{ padding: '0.65rem 1rem', opacity: 0.6 }}>
-              Enviar
-            </button>
-          </div>
-        </div>
-      </aside>
+      {/* DESPLEGABLE IZQUIERDO: CHAT CON IA (GOOGLE GEMINI) */}
+      <ChatbotDrawer
+        abierto={chatIaAbierto}
+        onCerrar={() => setChatIaAbierto(false)}
+        usuario={{ ...usuario, rol: 'profesor' }}
+        tituloPersonalizado="✨ Copiloto IA Docente"
+      />
 
       {/* BARRA LATERAL (IDÉNTICA EN ESTRUCTURA A LA DE ALUMNOS) */}
       <aside className="barra-lateral">
@@ -1235,18 +1446,18 @@ function VistaProfesor({ usuario, onCerrarSesion }) {
           <span className="etiqueta-rol">Profesor Titular</span>
         </div>
 
-        {/* BOTÓN PARA DESPLEGAR EL CHAT CON IA (FUTURA IMPLEMENTACION) */}
+        {/* BOTÓN PARA DESPLEGAR EL CHAT CON IA */}
         <button
           type="button"
           className="btn-chat-ia-toggle"
           onClick={() => setChatIaAbierto(true)}
-          title="Desplegar Chat con Inteligencia Artificial a la izquierda"
+          title="Hablar con el Asistente IA"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span>🤖</span>
             <span>Chat Asistente IA</span>
           </div>
-          <span className="badge-ia-futura">Próximamente</span>
+          <span className="badge-ia-activa">Gemini</span>
         </button>
 
         {/* MENÚ LATERAL CON LOS 4 APARTADOS PEDIDOS */}
@@ -2624,60 +2835,13 @@ function VistaDirector({ usuario, onCerrarSesion }) {
 
   return (
     <div className="panel-privado">
-      {/* DESPLEGABLE IZQUIERDO: CHAT CON IA (FUTURA IMPLEMENTACION) */}
-      <div
-        className={`drawer-chat-overlay ${chatIaAbierto ? 'abierto' : ''}`}
-        onClick={() => setChatIaAbierto(false)}
-      ></div>
-
-      <aside className={`drawer-chat-ia ${chatIaAbierto ? 'abierto' : ''}`}>
-        <div className="drawer-chat-cabecera">
-          <div className="drawer-chat-titulo">
-            <h3>🏛️ Asistente IA Dirección</h3>
-            <span className="badge-ia-futura">FUTURA IMPLEMENTACIÓN</span>
-          </div>
-          <button onClick={() => setChatIaAbierto(false)} className="btn-cerrar" style={{ color: '#ffffff' }}>
-            &times;
-          </button>
-        </div>
-
-        <div className="drawer-chat-cuerpo">
-          <div className="chat-burbuja ia">
-            👋 Saludos, <strong>{usuario.nombre}</strong>. Como copiloto de analítica institucional y gobernanza escolar, en próximas versiones podré:
-            <ul style={{ margin: '0.5rem 0 0 1.2rem', padding: 0 }}>
-              <li>Generar la memoria anual del centro para la inspección educativa de la CAM.</li>
-              <li>Analizar el rendimiento comparativo entre todos los departamentos.</li>
-              <li>Predecir ratios de acceso universitario según el baremo de corte.</li>
-              <li>Optimizar la asignación horaria del claustro docente y aulas disponibles.</li>
-            </ul>
-          </div>
-
-          <div className="chat-burbuja docente">
-            ¿Cuáles son los departamentos con menor índice de aprobados este trimestre?
-          </div>
-
-          <div className="chat-burbuja ia">
-            📈 Cuando el módulo de IA esté activo, procesaré al instante todas las actas evaluativas y te ofreceré planes directivos de mejora en un clic. 🏛️
-          </div>
-
-          <div className="chat-ia-aviso">
-            <strong>ℹ️ Estado: Módulo en fase de diseño.</strong> Podrás realizar consultas estratégicas e interactuar con toda la base de datos escolar en la siguiente actualización.
-          </div>
-        </div>
-
-        <div className="drawer-chat-pie">
-          <div className="chat-input-simulado">
-            <input
-              type="text"
-              disabled
-              placeholder="Consulta directiva a la IA sobre el centro... (Próximamente)"
-            />
-            <button className="boton-primario" disabled style={{ padding: '0.65rem 1rem', opacity: 0.6 }}>
-              Enviar
-            </button>
-          </div>
-        </div>
-      </aside>
+      {/* DESPLEGABLE IZQUIERDO: CHAT CON IA (GOOGLE GEMINI) */}
+      <ChatbotDrawer
+        abierto={chatIaAbierto}
+        onCerrar={() => setChatIaAbierto(false)}
+        usuario={{ ...usuario, rol: 'director' }}
+        tituloPersonalizado="🏛️ Copiloto IA Dirección"
+      />
 
       {/* BARRA LATERAL (IDÉNTICA EN ESTRUCTURA A LA DE ALUMNO Y PROFESOR) */}
       <aside className="barra-lateral">
@@ -2701,13 +2865,13 @@ function VistaDirector({ usuario, onCerrarSesion }) {
           type="button"
           className="btn-chat-ia-toggle"
           onClick={() => setChatIaAbierto(true)}
-          title="Desplegar Chat con Inteligencia Artificial a la izquierda"
+          title="Hablar con el Asistente IA"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span>🏛️</span>
             <span>Chat Asistente IA</span>
           </div>
-          <span className="badge-ia-futura">Próximamente</span>
+          <span className="badge-ia-activa">Gemini</span>
         </button>
 
         {/* MENÚ LATERAL CON LOS APARTADOS PEDIDOS */}

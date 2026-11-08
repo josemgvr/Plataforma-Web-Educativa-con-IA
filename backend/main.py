@@ -11,6 +11,8 @@ try:
 except ImportError:
     from database import get_connection, init_db
 
+from gemini_service import preguntar_a_gemini
+
 app = FastAPI(title="API Registro de Estudiantes", description="Sistema de gestión académica con roles de acceso")
 
 # Permitir CORS para peticiones desde el frontend web
@@ -1014,6 +1016,41 @@ def login(datos: LoginRequest):
     finally:
         conn.close()
 
+# Implementacion del chat de la ia
+class ChatRequest(BaseModel):
+    mensaje: str = Field(
+        min_length=1,
+        max_length=4000
+    )
+
+
+class ChatResponse(BaseModel):
+    respuesta: str
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(datos: ChatRequest):
+    mensaje = datos.mensaje.strip()
+
+    if not mensaje:
+        raise HTTPException(
+            status_code=400,
+            detail="El mensaje no puede estar vacío",
+        )
+
+    try:
+        respuesta = preguntar_a_gemini(mensaje)
+
+        return ChatResponse(
+            respuesta=respuesta
+        )
+
+    except Exception as error:
+        print(f"Error al llamar a Gemini: {error}")
+
+        raise HTTPException(
+            status_code=503,
+            detail="El servicio de inteligencia artificial no está disponible",
+        )
 
 # Servir archivos estáticos del frontend (compatible con build de Vite o desarrollo directo)
 BASE_PROYECTO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1034,3 +1071,5 @@ def pagina_principal():
     if os.path.exists(index_frontend):
         return FileResponse(index_frontend)
     return {"mensaje": "Portal de Estudiantes API funcionando."}
+
+
