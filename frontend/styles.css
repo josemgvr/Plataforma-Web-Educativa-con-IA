@@ -1506,6 +1506,681 @@ button {
 }
 
 /* ========================================================
+   ESTILOS ESPECÍFICOS DE LA INTERFAZ DEL PROFESOR
+   ======================================================== */
+
+/* Botón Desplegable Chat IA */
+.btn-chat-ia-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.08) 0%, rgba(217, 119, 6, 0.12) 100%);
+  border: 1px dashed var(--gold-400);
+  border-radius: var(--radius-md);
+  color: var(--navy-900);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-chat-ia-toggle:hover {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);
+}
+
+.badge-ia-futura {
+  background: var(--gold-500);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Cajón Lateral Desplegable Izquierdo: Chat con IA */
+.drawer-chat-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(12, 22, 48, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.drawer-chat-overlay.abierto {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer-chat-ia {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 380px;
+  max-width: 90vw;
+  height: 100vh;
+  background: var(--surface-card);
+  box-shadow: 10px 0 30px rgba(12, 22, 48, 0.25);
+  z-index: 1001;
+  transform: translateX(-100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-chat-ia.abierto {
+  transform: translateX(0);
+}
+
+.drawer-chat-cabecera {
+  padding: 1.4rem;
+  background: linear-gradient(135deg, var(--navy-950) 0%, var(--navy-850) 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.drawer-chat-titulo h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.drawer-chat-cuerpo {
+  flex: 1;
+  padding: 1.2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--bg-app);
+}
+
+.chat-burbuja {
+  max-width: 88%;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.chat-burbuja.ia {
+  align-self: flex-start;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-burbuja.docente {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-700) 100%);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-ia-aviso {
+  background: var(--gold-50);
+  border: 1px solid var(--gold-300);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  font-size: 0.8rem;
+  color: #78350f;
+  margin-top: auto;
+}
+
+.drawer-chat-pie {
+  padding: 1rem;
+  background: #ffffff;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.chat-input-simulado {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-input-simulado input {
+  flex: 1;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  background: var(--surface-muted);
+  cursor: not-allowed;
+}
+
+/* Filtros y Buscadores Docente */
+.barra-filtros-docente {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.input-busqueda-docente {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.9rem;
+  gap: 0.5rem;
+}
+
+.input-busqueda-docente input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.9rem;
+  background: transparent;
+}
+
+.select-filtro-curso {
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--navy-900);
+  cursor: pointer;
+}
+
+/* Rejilla de Alumnos del Profesor */
+.rejilla-alumnos-docente {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.25rem;
+}
+
+.tarjeta-alumno-docente {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.3rem;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.tarjeta-alumno-docente:hover {
+  transform: translateY(-3px);
+  border-color: var(--navy-600);
+  box-shadow: var(--shadow-md);
+}
+
+.alumno-docente-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.avatar-alumno-docente {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-700) 100%);
+  color: var(--gold-300);
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.alumno-docente-info h4 {
+  font-size: 1rem;
+  color: var(--navy-900);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.alumno-docente-info span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.alumno-docente-stats {
+  display: flex;
+  justify-content: space-between;
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.stat-item-valor {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+.alumno-docente-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.8rem;
+}
+
+.btn-ver-expediente {
+  background: transparent;
+  color: var(--navy-700);
+  font-weight: 700;
+  font-size: 0.82rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.btn-ver-expediente:hover {
+  background: var(--navy-50);
+}
+
+/* Tabla de Calificación de Notas */
+.tabla-calificaciones-wrap {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.tabla-calificaciones {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tabla-calificaciones th {
+  background: var(--surface-muted);
+  color: var(--navy-900);
+  padding: 1rem 1.2rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tabla-calificaciones td {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.tabla-calificaciones tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla-calificaciones tr:hover td {
+  background: rgba(240, 244, 255, 0.4);
+}
+
+.input-nota-edicion {
+  width: 80px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--navy-900);
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.input-nota-edicion:focus {
+  outline: none;
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.alerta-exito-flotante {
+  background: var(--emerald-50);
+  color: var(--emerald-600);
+  border: 1px solid #a7f3d0;
+  padding: 0.9rem 1.2rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal Detalle Expediente de Alumno */
+.modal-expediente-cuerpo {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.modal-expediente-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1.5rem;
+}
+
+/* ========================================================
+   ESTILOS ESPECÍFICOS DE LA INTERFAZ DEL DIRECTOR
+   ======================================================== */
+.barra-acciones-seccion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.rejilla-distribucion {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tarjeta-distribucion-item {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  text-align: center;
+}
+
+.tarjeta-distribucion-item.sobresaliente {
+  border-top: 4px solid var(--emerald-500);
+}
+
+.tarjeta-distribucion-item.notable {
+  border-top: 4px solid var(--navy-600);
+}
+
+.tarjeta-distribucion-item.aprobado {
+  border-top: 4px solid var(--gold-500);
+}
+
+.tarjeta-distribucion-item.refuerzo {
+  border-top: 4px solid var(--rose-600);
+}
+
+.tarjeta-distribucion-valor {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--navy-900);
+  line-height: 1.2;
+}
+
+.tarjeta-distribucion-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 0.3rem;
+}
+
+.tarjeta-profesor-director {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.3rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tarjeta-profesor-director:hover {
+  transform: translateY(-3px);
+  border-color: var(--navy-600);
+  box-shadow: var(--shadow-md);
+}
+
+.profesor-director-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.avatar-profesor-director {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-600) 0%, var(--gold-400) 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-volver-seccion {
+  background: transparent;
+  border: none;
+  color: var(--navy-700);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-md);
+  transition: background 0.2s ease;
+}
+
+.btn-volver-seccion:hover {
+  background: var(--navy-50);
+}
+
+/* Tarjetas y Contenedores de Certificados */
+.rejilla-certificados {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.tarjeta-certificado-admin {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.4rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+}
+
+.tarjeta-certificado-admin:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-400);
+  box-shadow: var(--shadow-md);
+}
+
+.certificado-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.certificado-admin-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.icono-medalla-admin {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--gold-100) 0%, var(--gold-50) 100%);
+  color: var(--gold-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  flex-shrink: 0;
+}
+
+.lista-alumnos-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0.8rem 0;
+  padding: 0.5rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+}
+
+.item-alumno-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  background: #ffffff;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Botón de Eliminación Destacado */
+.btn-eliminar-registro {
+  background: transparent;
+  color: var(--rose-600);
+  border: 1px solid transparent;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s ease;
+}
+
+.btn-eliminar-registro:hover {
+  background: var(--rose-50);
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+/* Pestañas para el Modal de Asignaciones y Relaciones */
+.selector-relaciones-segmentado {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--surface-muted);
+  padding: 0.35rem;
+  border-radius: var(--radius-md);
+}
+
+.btn-opcion-relacion {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 0.6rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.btn-opcion-relacion.activo {
+  background: #ffffff;
+  color: var(--navy-900);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+
+/* Tabla de Logs de Auditoría */
+.badge-tabla-log {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-tabla-log.alumnos { background: #dbeafe; color: #1e40af; }
+.badge-tabla-log.profesores { background: #fef3c7; color: #92400e; }
+.badge-tabla-log.cursos { background: #e0e7ff; color: #3730a3; }
+.badge-tabla-log.certificados { background: #fce7f3; color: #9d174d; }
+
+/* ========================================================
    VISTA PROFESOR / DIRECTOR
    ======================================================== */
 .panel-otro-rol {
