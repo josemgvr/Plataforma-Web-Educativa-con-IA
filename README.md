@@ -100,4 +100,21 @@ python -m backend.cargar_documentos
 ```
 Recorre `backend/documentos`, genera los embeddings locales y actualiza la tabla `chunks` de pgvector. Hay que repetirlo cuando se añadan o modifiquen los `.md`. Sin este paso el chatbot sigue funcionando, pero sin apoyarse en la documentación.
 
-> El chatbot necesita `GEMINI_API_KEY` configurada en `backend/.env` (además de `DATABASE_URL` para la base de datos).
+> El chatbot necesita `GEMINI_API_KEY` configurada en `backend/.env` (además de `DATABASE_URL` para la base de datos). Puedes copiar la plantilla `backend/.env.example` y completarla con tus propios valores.
+
+---
+
+## ⚠️ Limitaciones conocidas
+
+Proyecto didáctico creado para una hackaton: no está pensado para producción. Estas son las limitaciones conscientes y lo que se haría para resolverlas:
+
+- **Autenticación básica**: las contraseñas se guardan en claro en la base de datos y cada petición envía las credenciales (query params o cuerpo del chat); no hay token de sesión. Próximo paso: hash con bcrypt/argon2 y sesiones firmadas (JWT).
+- **Sin límite de peticiones** en `/chat`: quien tenga credenciales puede consumir cuota de Gemini. Próximo paso: rate limiting por usuario.
+- **Chatbot dependiente de la API externa** de Gemini (coste y latencia). La primera pregunta tras arrancar tarda más porque carga el modelo local de embeddings, y no hay streaming de la respuesta.
+- **Datos enviados al modelo acotados**: el profesor recibe las 10 mejores y 10 peores notas de cada curso (no el listado completo) y el director hasta 100 alumnos, para no disparar el tamaño del prompt. No hay búsqueda dinámica por alumno.
+- **RAG manual**: los `.md` de `backend/documentos` se indexan con `python -m backend.cargar_documentos`; hay que repetirlo al cambiar la documentación.
+- **Sin tests automatizados**: la verificación es manual.
+- **Datos ficticios**: todos los nombres son inventados; no se usan datos reales de alumnos.
+- **Sin HTTPS, CSRF ni CORS restringido**: en un despliegue real debería resolverse en el servidor proxy y limitando los orígenes permitidos.
+
+Próximos pasos prioritarios: hashear contraseñas y añadir token de sesión, tests básicos de la API, búsqueda dinámica de alumnos en el chat y una demo con datos ficticios y base de datos desechable.

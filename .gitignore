@@ -40,6 +40,10 @@ frontend/.env
 frontend/.env.*
 backend/.env
 backend/.env.*
+backend/Supabase.env
+
+# Plantilla de variables de entorno sin secretos (sí debe subirse)
+!backend/.env.example
 
 # Editores
 .vscode/
