@@ -30,7 +30,7 @@ El proyecto está organizado en una arquitectura desacoplada de tres capas:
   - Tabla `chunks` con extensión **pgvector** para almacenar los fragmentos de documentación y sus embeddings (usada por el RAG).
   - Migración completa de los datos desde `SQLite` a `PostgreSQL` para mejorar la escalabilidad, concurrencia y preparación para despliegue en producción.
 
-- ** Chatbot con IA (RAG + datos académicos)**
+- **Chatbot con IA (RAG + datos académicos)**
   - El chatbot, integrado en las vistas de **profesor** y **director**, responde en español combinando tres fuentes:
 
   - **Google Gemini** como modelo de lenguaje (`gemini_service.py`).
