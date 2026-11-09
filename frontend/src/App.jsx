@@ -489,7 +489,12 @@ function ChatbotDrawer({ abierto, onCerrar, usuario, tituloPersonalizado }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ mensaje: consulta })
+        body: JSON.stringify({
+          mensaje: consulta,
+          usuario_nombre: usuario?.nombre || '',
+          usuario_contrasena: usuario?.contrasena || '',
+          usuario_rol: rol
+        })
       });
 
       if (!res.ok) {

@@ -11,8 +11,6 @@ try:
 except ImportError:
     from database import get_connection, init_db
 
-from gemini_service import preguntar_a_gemini
-
 app = FastAPI(title="API Registro de Estudiantes", description="Sistema de gestión académica con roles de acceso")
 
 # Permitir CORS para peticiones desde el frontend web
@@ -108,6 +106,37 @@ def verificar_profesor(nombre: str, contrasena: str):
         if not profesor:
             raise HTTPException(status_code=401, detail="Credenciales incorrectas: profesor no encontrado.")
         return profesor
+    finally:
+        conn.close()
+
+def autenticar_usuario(nombre: str, contrasena: str, rol: str):
+    """
+    Comprueba las credenciales y devuelve el usuario real.
+
+    El rol que envía el cliente solo se usa como pista: siempre se valida
+    contra la tabla correspondiente, así que nadie puede hacerse pasar por
+    otro rol enviando un valor distinto.
+    """
+    rol = (rol or "").lower().strip()
+    tablas = {
+        "alumno": "alumnos",
+        "profesor": "profesores",
+        "director": "directores",
+    }
+    if rol not in tablas:
+        raise HTTPException(status_code=400, detail="Rol no válido. Debe ser alumno, profesor o director.")
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            f"SELECT id, nombre_apellidos FROM {tablas[rol]} WHERE nombre_apellidos = %s AND contrasena = %s",
+            (nombre, contrasena),
+        )
+        usuario = cursor.fetchone()
+        if not usuario:
+            raise HTTPException(status_code=401, detail="Credenciales incorrectas.")
+        return {"id": usuario["id"], "nombre": usuario["nombre_apellidos"], "rol": rol}
     finally:
         conn.close()
 
@@ -1016,18 +1045,329 @@ def login(datos: LoginRequest):
     finally:
         conn.close()
 
+# --- CHATBOT IA CON DATOS SEGÚN EL ROL ---
+
+def _texto_dato(valor) -> str:
+    """Convierte un valor de la base de datos en texto para el prompt."""
+    return "sin datos" if valor is None else str(valor)
+
+
+def _datos_para_director() -> str:
+    """Resumen de datos de todo el centro (el director puede verlo todo)."""
+    conexion = get_connection()
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) AS total FROM alumnos")
+            total_alumnos = cursor.fetchone()["total"]
+
+            cursor.execute("SELECT COUNT(*) AS total FROM profesores")
+            total_profesores = cursor.fetchone()["total"]
+
+            cursor.execute("SELECT COUNT(*) AS total FROM cursos")
+            total_cursos = cursor.fetchone()["total"]
+
+            cursor.execute("SELECT COUNT(*) AS total FROM certificados")
+            total_certificados = cursor.fetchone()["total"]
+
+            cursor.execute("""
+                SELECT
+                    ROUND(AVG(nota_media)::numeric, 2) AS media,
+                    ROUND(AVG(asistencia)::numeric, 1) AS asistencia
+                FROM alumnos
+            """)
+            fila_medias = cursor.fetchone()
+            media_global = _texto_dato(fila_medias["media"])
+            asistencia_media = _texto_dato(fila_medias["asistencia"])
+
+            cursor.execute("SELECT COUNT(*) AS total FROM alumnos WHERE nota_media >= 5.0")
+            aprobados = cursor.fetchone()["total"]
+            tasa_aprobados = round(aprobados / total_alumnos * 100, 1) if total_alumnos > 0 else 0.0
+
+            cursor.execute("""
+                SELECT
+                    c.nombre,
+                    c.materia,
+                    COUNT(DISTINCT ac.alumno_id) AS total_alumnos,
+                    COUNT(DISTINCT pc.profesor_id) AS total_profesores,
+                    ROUND(AVG(ac.nota)::numeric, 2) AS nota_media
+                FROM cursos c
+                LEFT JOIN alumnos_cursos ac ON ac.curso_id = c.id
+                LEFT JOIN profesores_cursos pc ON pc.curso_id = c.id
+                GROUP BY c.id, c.nombre, c.materia
+                ORDER BY c.nombre ASC
+            """)
+            cursos = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT nombre_apellidos, nota_media, trabajos_entregados, asistencia
+                FROM alumnos
+                ORDER BY nombre_apellidos ASC
+                LIMIT 100
+            """)
+            alumnos = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT p.nombre_apellidos, COUNT(pc.curso_id) AS total_cursos
+                FROM profesores p
+                LEFT JOIN profesores_cursos pc ON pc.profesor_id = p.id
+                GROUP BY p.id, p.nombre_apellidos
+                ORDER BY p.nombre_apellidos ASC
+                LIMIT 100
+            """)
+            profesores = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT ce.nombre, COUNT(ace.alumno_id) AS total_alumnos
+                FROM certificados ce
+                LEFT JOIN alumnos_certificados ace ON ace.certificado_id = ce.id
+                GROUP BY ce.id, ce.nombre
+                ORDER BY ce.nombre ASC
+            """)
+            certificados = cursor.fetchall()
+    finally:
+        conexion.close()
+
+    lineas = [
+        "DATOS DEL CENTRO (el usuario es director y puede ver todo el centro):",
+        f"- Totales: {total_alumnos} alumnos, {total_profesores} profesores, {total_cursos} cursos, {total_certificados} certificados.",
+        f"- Media global: {media_global} | Asistencia media: {asistencia_media}% | Aprobados: {aprobados} de {total_alumnos} ({tasa_aprobados}%)",
+    ]
+
+    lineas.append("- Cursos:")
+    if cursos:
+        for curso in cursos:
+            lineas.append(
+                f"  - {curso['nombre']} ({curso['materia']}): "
+                f"{curso['total_alumnos']} alumnos, "
+                f"{curso['total_profesores']} profesores, "
+                f"nota media {_texto_dato(curso['nota_media'])}"
+            )
+    else:
+        lineas.append("  - No hay cursos registrados")
+
+    lineas.append("- Alumnos (nombre | nota media | trabajos entregados | asistencia):")
+    if alumnos:
+        for alumno in alumnos:
+            lineas.append(
+                f"  - {alumno['nombre_apellidos']} | {_texto_dato(alumno['nota_media'])} | "
+                f"{alumno['trabajos_entregados']} | {_texto_dato(alumno['asistencia'])}%"
+            )
+        if total_alumnos > len(alumnos):
+            lineas.append(f"  (se muestran {len(alumnos)} de {total_alumnos} alumnos)")
+    else:
+        lineas.append("  - No hay alumnos registrados")
+
+    lineas.append("- Profesores (nombre | cursos impartidos):")
+    if profesores:
+        for profesor in profesores:
+            lineas.append(
+                f"  - {profesor['nombre_apellidos']} | {profesor['total_cursos']} cursos"
+            )
+    else:
+        lineas.append("  - No hay profesores registrados")
+
+    lineas.append("- Certificados (nombre | alumnos que lo poseen):")
+    if certificados:
+        for certificado in certificados:
+            lineas.append(
+                f"  - {certificado['nombre']} | {certificado['total_alumnos']} alumnos"
+            )
+    else:
+        lineas.append("  - No hay certificados registrados")
+
+    return "\n".join(lineas)
+
+
+MAX_ALUMNOS_DESTACADOS = 10
+
+
+def _datos_para_profesor(profesor_id: int) -> str:
+    """
+    Resumen de los cursos del profesor autenticado.
+
+    Cada curso incluye sus métricas completas y las mejores y peores notas.
+    No se envían los listados completos porque un profesor puede tener
+    cientos de alumnos y el prompt crecería demasiado.
+    """
+    conexion = get_connection()
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("SELECT nombre_apellidos FROM profesores WHERE id = %s", (profesor_id,))
+            profesor = cursor.fetchone()
+
+            cursor.execute("""
+                SELECT
+                    c.id,
+                    c.nombre,
+                    c.materia,
+                    COUNT(ac.alumno_id) AS total_alumnos,
+                    ROUND(AVG(ac.nota)::numeric, 2) AS nota_media,
+                    MAX(ac.nota) AS nota_maxima,
+                    MIN(ac.nota) AS nota_minima,
+                    COUNT(*) FILTER (WHERE ac.nota >= 5.0) AS aprobados
+                FROM profesores_cursos pc
+                JOIN cursos c ON pc.curso_id = c.id
+                LEFT JOIN alumnos_cursos ac ON ac.curso_id = c.id
+                WHERE pc.profesor_id = %s
+                GROUP BY c.id, c.nombre, c.materia
+                ORDER BY c.nombre ASC
+            """, (profesor_id,))
+            cursos = cursor.fetchall()
+
+            cursor.execute("""
+                WITH notas_curso AS (
+                    SELECT
+                        c.id AS curso_id,
+                        a.nombre_apellidos,
+                        ac.nota,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY c.id
+                            ORDER BY ac.nota DESC, a.nombre_apellidos ASC
+                        ) AS posicion_mejor,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY c.id
+                            ORDER BY ac.nota ASC, a.nombre_apellidos ASC
+                        ) AS posicion_peor
+                    FROM alumnos_cursos ac
+                    JOIN alumnos a ON ac.alumno_id = a.id
+                    JOIN cursos c ON ac.curso_id = c.id
+                    JOIN profesores_cursos pc ON pc.curso_id = c.id AND pc.profesor_id = %s
+                    WHERE ac.nota IS NOT NULL
+                )
+                SELECT
+                    curso_id,
+                    nombre_apellidos,
+                    nota,
+                    posicion_mejor,
+                    posicion_peor
+                FROM notas_curso
+                WHERE posicion_mejor <= %s OR posicion_peor <= %s
+                ORDER BY curso_id ASC, posicion_mejor ASC
+            """, (profesor_id, MAX_ALUMNOS_DESTACADOS, MAX_ALUMNOS_DESTACADOS))
+            destacados = cursor.fetchall()
+    finally:
+        conexion.close()
+
+    mejores = {}
+    peores = {}
+
+    for fila in destacados:
+        if fila["posicion_mejor"] <= MAX_ALUMNOS_DESTACADOS:
+            mejores.setdefault(fila["curso_id"], []).append(fila)
+        if fila["posicion_peor"] <= MAX_ALUMNOS_DESTACADOS:
+            peores.setdefault(fila["curso_id"], []).append(fila)
+
+    nombre = profesor["nombre_apellidos"] if profesor else "profesor"
+    lineas = [
+        f"DATOS DEL PROFESOR {nombre} (acceso a todos sus cursos; el detalle de notas se limita a las {MAX_ALUMNOS_DESTACADOS} mejores y {MAX_ALUMNOS_DESTACADOS} peores de cada curso):",
+    ]
+
+    lineas.append("- Cursos que imparte:")
+    if cursos:
+        for curso in cursos:
+            aprobados = curso["aprobados"]
+            total = curso["total_alumnos"]
+            tasa = round(aprobados / total * 100, 1) if total > 0 else 0.0
+            lineas.append(
+                f"  - {curso['nombre']} ({curso['materia']}): "
+                f"{total} alumnos | media {_texto_dato(curso['nota_media'])} | "
+                f"máxima {_texto_dato(curso['nota_maxima'])} | "
+                f"mínima {_texto_dato(curso['nota_minima'])} | "
+                f"aprobados {aprobados} de {total} ({tasa}%)"
+            )
+    else:
+        lineas.append("  - No imparte ningún curso")
+
+    lineas.append(f"- Mejores notas de cada curso (hasta {MAX_ALUMNOS_DESTACADOS}):")
+    if mejores:
+        for curso in cursos:
+            filas = sorted(
+                mejores.get(curso["id"], []),
+                key=lambda fila: fila["posicion_mejor"],
+            )
+            if filas:
+                resumen = "; ".join(
+                    f"{fila['nombre_apellidos']} ({_texto_dato(fila['nota'])})"
+                    for fila in filas
+                )
+                lineas.append(f"  - {curso['nombre']}: {resumen}")
+    else:
+        lineas.append("  - Sin notas registradas")
+
+    lineas.append(f"- Peores notas de cada curso (hasta {MAX_ALUMNOS_DESTACADOS}):")
+    if peores:
+        for curso in cursos:
+            filas = sorted(
+                peores.get(curso["id"], []),
+                key=lambda fila: fila["posicion_peor"],
+            )
+            if filas:
+                resumen = "; ".join(
+                    f"{fila['nombre_apellidos']} ({_texto_dato(fila['nota'])})"
+                    for fila in filas
+                )
+                lineas.append(f"  - {curso['nombre']}: {resumen}")
+    else:
+        lineas.append("  - Sin notas registradas")
+
+    lineas.append(
+        "- IMPORTANTE: estos datos cubren TODOS los cursos del profesor. "
+        "Si preguntan por un alumno que no aparece en las listas, indica que no "
+        "tienes su nota concreta, pero nunca digas que no tienes acceso a ese curso."
+    )
+
+    return "\n".join(lineas)
+
+
+def construir_datos_chat(usuario: dict) -> str:
+    """Devuelve el contexto de datos permitido para el rol del usuario."""
+    if usuario["rol"] == "director":
+        return _datos_para_director()
+
+    if usuario["rol"] == "profesor":
+        return _datos_para_profesor(usuario["id"])
+
+    raise HTTPException(
+        status_code=403,
+        detail="El chatbot solo está disponible para profesores y directores.",
+    )
+
+
 # Implementacion del chat de la ia
 class ChatRequest(BaseModel):
     mensaje: str = Field(
         min_length=1,
         max_length=4000
     )
+    usuario_nombre: str = Field(
+        min_length=1,
+        max_length=150
+    )
+    usuario_contrasena: str = Field(
+        min_length=1,
+        max_length=200
+    )
+    usuario_rol: str = Field(
+        min_length=1,
+        max_length=20
+    )
 
 
 class ChatResponse(BaseModel):
     respuesta: str
 
-@app.post("/chat", response_model=ChatResponse)
+
+def _consultar_rag(mensaje: str, datos: str = "") -> dict:
+    """Importa el RAG solo al usarlo, porque carga el modelo local de embeddings."""
+    try:
+        from backend.rag_service import responder_con_rag
+    except ImportError:
+        from rag_service import responder_con_rag
+
+    return responder_con_rag(mensaje, datos)
+
+
+@app.post("/chat", response_model=ChatResponse, summary="Chatbot con datos según el rol del usuario")
 def chat(datos: ChatRequest):
     mensaje = datos.mensaje.strip()
 
@@ -1037,15 +1377,23 @@ def chat(datos: ChatRequest):
             detail="El mensaje no puede estar vacío",
         )
 
+    # Solo profesores y directores pueden usar el chatbot; los alumnos no.
+    usuario = autenticar_usuario(
+        datos.usuario_nombre,
+        datos.usuario_contrasena,
+        datos.usuario_rol,
+    )
+    contexto_datos = construir_datos_chat(usuario)
+
     try:
-        respuesta = preguntar_a_gemini(mensaje)
+        resultado = _consultar_rag(mensaje, contexto_datos)
 
         return ChatResponse(
-            respuesta=respuesta
+            respuesta=resultado["respuesta"]
         )
 
     except Exception as error:
-        print(f"Error al llamar a Gemini: {error}")
+        print(f"Error al generar la respuesta del chat: {error}")
 
         raise HTTPException(
             status_code=503,
