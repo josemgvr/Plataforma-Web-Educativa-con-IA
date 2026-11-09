@@ -30,20 +30,17 @@ El proyecto está organizado en una arquitectura desacoplada de tres capas:
   - Tabla `chunks` con extensión **pgvector** para almacenar los fragmentos de documentación y sus embeddings (usada por el RAG).
   - Migración completa de los datos desde `SQLite` a `PostgreSQL` para mejorar la escalabilidad, concurrencia y preparación para despliegue en producción.
 
----
+- ** Chatbot con IA (RAG + datos académicos)
+  - El chatbot, integrado en las vistas de **profesor** y **director**, responde en español combinando tres fuentes:
 
-## 🤖 Chatbot con IA (RAG + datos académicos)
+  - **Google Gemini** como modelo de lenguaje (`gemini_service.py`).
+  - **RAG sobre documentación**: recupera fragmentos relevantes de los archivos `.md` de `backend/documentos` (por ejemplo, dudas sobre cursos, certificados o uso de la plataforma). Usa embeddings locales con `sentence-transformers` y búsqueda vectorial con **pgvector** (`rag_service.py` y `local_embeddings.py`).
+  - **Datos de la base de datos según el rol**:
+   -  **Profesor**: métricas de sus cursos (alumnos, media, nota máxima/mínima y aprobados) y las mejores y peores notas de cada curso.
+  -  **Director**: resumen de todo el centro (totales, media global, cursos, alumnos, profesores y certificados).
+  -  **Alumnos**: no tienen acceso al chatbot (el backend lo bloquea).
 
-El chatbot, integrado en las vistas de **profesor** y **director**, responde en español combinando tres fuentes:
-
-- **Google Gemini** como modelo de lenguaje (`gemini_service.py`).
-- **RAG sobre documentación**: recupera fragmentos relevantes de los archivos `.md` de `backend/documentos` (por ejemplo, dudas sobre cursos, certificados o uso de la plataforma). Usa embeddings locales con `sentence-transformers` y búsqueda vectorial con **pgvector** (`rag_service.py` y `local_embeddings.py`).
-- **Datos de la base de datos según el rol**:
-  - **Profesor**: métricas de sus cursos (alumnos, media, nota máxima/mínima y aprobados) y las mejores y peores notas de cada curso.
-  - **Director**: resumen de todo el centro (totales, media global, cursos, alumnos, profesores y certificados).
-  - **Alumnos**: no tienen acceso al chatbot (el backend lo bloquea).
-
-La documentación es un complemento: si no hay fragmentos relevantes, el chatbot responde igualmente con conocimientos generales de educación y pedagogía. El backend verifica las credenciales del usuario y filtra los datos antes de enviarlos al modelo, que nunca consulta la base de datos directamente.
+  - La documentación es un complemento: si no hay fragmentos relevantes, el chatbot responde igualmente con conocimientos generales de educación y pedagogía. El backend verifica las credenciales del usuario y filtra los datos antes de enviarlos al modelo, que nunca consulta la base de datos directamente.
 
 ---
 
